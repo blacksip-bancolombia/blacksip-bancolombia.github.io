@@ -1,44 +1,161 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">
-<title>Prueba de conexión · BlackSip</title>
-<style>
-  body { font-family: Roboto, Arial, sans-serif; color: #2c2a29; background: #f7f7f7; margin: 0; padding: 40px; }
-  .caja { max-width: 640px; margin: auto; background: #fff; border: 1px solid #e6e4e3; padding: 28px; }
-  h1 { font-size: 20px; margin: 0 0 8px; }
-  button { background: #2c2a29; color: #fff; border: 0; padding: 10px 18px; font-size: 14px; cursor: pointer; }
-  pre { background: #f1efee; padding: 12px; white-space: pre-wrap; word-break: break-word; font-size: 13px; }
-  .ok { color: #00654A; font-weight: bold; } .mal { color: #B23A0E; font-weight: bold; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboards VTEX · BlackSip</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --negro: #2c2a29; --blanco: #fff; --amarillo: #fdda24; --rosado: #ffb8d2; --naranja: #ff7f41;
+      --morado: #9063cd; --celeste: #59cbe8; --verde: #00c389; --gris: #f7f7f7;
+      --gris2: #E6E4E3; --texto2: #66625F; --texto3: #8C8784;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { font-family: 'Roboto', Arial, sans-serif; font-size: 14px; color: var(--negro); background: var(--gris); min-width: 1100px; }
+    h1, h2, h3 { font-family: 'Quicksand', Arial, sans-serif; font-weight: 700; margin: 0; }
+
+    .cabecera { background: var(--negro); color: var(--blanco); display: flex; align-items: center; gap: 18px; padding: 12px 28px; }
+    .cabecera img { height: 36px; display: block; }
+    .cabecera .modulo { font-family: 'Quicksand', Arial, sans-serif; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; border-left: 1px solid #555; padding-left: 18px; }
+    .acento { height: 5px; background: linear-gradient(90deg, var(--amarillo) 0 20%, var(--naranja) 20% 40%, var(--rosado) 40% 60%, var(--morado) 60% 80%, var(--celeste) 80% 100%); }
+
+    .contenido { max-width: 1240px; margin: 0 auto; padding: 0 28px 60px; }
+
+    /* Portada */
+    .portada { display: grid; grid-template-columns: minmax(0, 1fr) 520px; align-items: center; gap: 30px; min-height: 360px; padding: 34px 0 10px; }
+    .portada h1 { font-size: 46px; line-height: 1.08; letter-spacing: -.5px; }
+    .portada h1 span { display: block; }
+    .portada .bajada { font-size: 17px; color: var(--texto2); margin-top: 18px; max-width: 520px; line-height: 1.5; }
+    .arte { position: relative; height: 330px; }
+    .arte svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+    /* Tarjetas de elección */
+    .eleccion { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 12px; }
+    .opcion { display: block; text-decoration: none; color: inherit; background: var(--blanco); border: 1px solid var(--gris2); border-radius: 4px; padding: 26px 28px 24px; position: relative; overflow: hidden; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+    .opcion::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 6px; }
+    .opcion.inmobiliario::before { background: linear-gradient(90deg, var(--morado), var(--celeste)); }
+    .opcion.movilidad::before { background: linear-gradient(90deg, var(--naranja), var(--amarillo)); }
+    .opcion:hover, .opcion:focus-visible { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(44,42,41,.12); border-color: #CFCBC8; outline: none; }
+    .opcion .cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .opcion .nombre { font-family: 'Quicksand', Arial, sans-serif; font-weight: 700; font-size: 26px; }
+    .opcion .nombre img { height: 40px; display: block; }
+    .opcion .desc { color: var(--texto2); margin-top: 6px; font-size: 14px; }
+    .opcion .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 22px 0 20px; }
+    .opcion .kpi .v { font-family: 'Quicksand', Arial, sans-serif; font-weight: 700; font-size: 30px; font-variant-numeric: tabular-nums; }
+    .opcion .kpi .l { font-size: 12px; color: var(--texto2); margin-top: 2px; }
+    .opcion .pie { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--gris2); padding-top: 14px; }
+    .opcion .fecha { font-size: 12px; color: var(--texto3); }
+    .opcion .fecha.vieja { color: #C2410C; font-weight: 500; }
+    .opcion .ir { background: var(--negro); color: var(--blanco); padding: 9px 16px; border-radius: 2px; font-weight: 500; font-size: 13px; }
+    .opcion:hover .ir { background: #000; }
+    .esqueleto { display: inline-block; height: 26px; width: 70px; background: linear-gradient(90deg, #f0eeed, #e6e4e3, #f0eeed); background-size: 200% 100%; animation: brillo 1.2s infinite; border-radius: 2px; }
+    @keyframes brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    .sin-datos { font-size: 13px; color: var(--texto3); margin: 22px 0 20px; }
+
+    .pie-pagina { color: var(--texto3); font-size: 11.5px; margin-top: 30px; display: flex; justify-content: space-between; }
+  </style>
 </head>
 <body>
-<div class="caja">
-  <h1>Prueba: GitHub Pages → n8n de producción</h1>
-  <p>Llama al webhook de prueba de <b>bic.blacksip.com</b> desde este navegador (POST con JSON, igual que hará la app).</p>
-  <button onclick="probar()">Probar conexión</button>
-  <p id="estado"></p>
-  <pre id="detalle"></pre>
-</div>
+  <header class="cabecera">
+    <img src="img/blacksip-blanco.png" alt="BlackSip">
+    <span class="modulo">Dashboards de catálogo VTEX</span>
+  </header>
+  <div class="acento"></div>
+
+  <main class="contenido">
+    <section class="portada">
+      <div>
+        <h1><span>Dashboard de</span><span>productos activos</span><span>en los marketplaces</span></h1>
+        <p class="bajada">Catálogo publicado, calidad de la información y fecha de la última actualización de cada producto, al día con la revisión de cada noche.</p>
+      </div>
+      <div class="arte" aria-hidden="true">
+        <!-- Composición abstracta con los colores del cliente -->
+        <svg viewBox="0 0 520 330">
+          <path d="M40 300 A220 220 0 0 1 300 70" fill="none" stroke="#59cbe8" stroke-width="26" stroke-linecap="round"/>
+          <path d="M250 52 A250 250 0 0 1 430 120" fill="none" stroke="#fdda24" stroke-width="26" stroke-linecap="round"/>
+          <path d="M405 150 A230 230 0 0 1 470 270" fill="none" stroke="#ff7f41" stroke-width="22" stroke-linecap="round"/>
+          <path d="M150 318 A150 150 0 0 1 300 170" fill="none" stroke="#9063cd" stroke-width="22" stroke-linecap="round"/>
+          <path d="M330 186 A130 130 0 0 1 400 300" fill="none" stroke="#ffb8d2" stroke-width="18" stroke-linecap="round"/>
+          <circle cx="300" cy="300" r="10" fill="#00c389"/>
+          <g font-family="Quicksand, Arial, sans-serif" font-weight="700">
+            <rect x="196" y="214" width="132" height="70" rx="6" fill="#fff" stroke="#E6E4E3"/>
+            <text x="212" y="242" font-size="12" fill="#66625F">Activos hoy</text>
+            <text x="212" y="270" font-size="24" fill="#2c2a29" id="arteValor">—</text>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <section class="eleccion" id="eleccion">
+    </section>
+
+    <div class="pie-pagina"><span>Los datos se actualizan cada noche desde VTEX.</span><span>BlackSip · Digital Commerce Partners</span></div>
+  </main>
+
+<script src="js/datos.js"></script>
 <script>
-async function probar() {
-  const est = document.getElementById('estado'), det = document.getElementById('detalle');
-  est.textContent = 'Probando…'; est.className = ''; det.textContent = '';
-  try {
-    const r = await fetch('https://bic.blacksip.com/webhook/trz-prueba-cors', {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mensaje: 'hola desde GitHub Pages' })
-    });
-    const texto = await r.text();
-    est.textContent = r.ok ? 'FUNCIONA: n8n respondió ' + r.status : 'FALLÓ: n8n respondió ' + r.status;
-    est.className = r.ok ? 'ok' : 'mal';
-    det.textContent = texto.slice(0, 600);
-  } catch (e) {
-    est.textContent = 'FALLÓ: el navegador bloqueó la llamada (' + e.message + ')'; est.className = 'mal';
-    det.textContent = 'Abra la consola (F12 → pestaña Console) y mande una captura del mensaje en rojo.';
+  const fmt = new Intl.NumberFormat('es-CO');
+  const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
+  function fechaTexto(iso) {
+    const d = new Date(iso);
+    return d.getDate() + ' ' + MESES[d.getMonth()] + ' ' + d.getFullYear() + ', ' + d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
   }
-}
+  function pintar(json) {
+    let total = 0;
+    JSON.parse(json).forEach(x => {
+      const caja = document.querySelector('.kpis[data-clave="' + x.clave + '"]');
+      const fecha = document.querySelector('[data-fecha="' + x.clave + '"]');
+      if (!caja) return;
+      if (!x.resumen) {
+        caja.outerHTML = '<div class="sin-datos">Todavía no hay datos: se generan en la próxima revisión nocturna.</div>';
+        fecha.textContent = '';
+        return;
+      }
+      const v = caja.querySelectorAll('.v');
+      v[0].textContent = fmt.format(x.resumen.activos);
+      v[1].textContent = fmt.format(x.resumen.grupos);
+      v[2].textContent = fmt.format(x.resumen.total);
+      fecha.textContent = 'Datos al ' + fechaTexto(x.resumen.fecha);
+      // Se generan cada noche: si tienen más de 30 horas, algo falló en la revisión nocturna
+      if (Date.now() - new Date(x.resumen.fecha).getTime() > 30 * 3600 * 1000) {
+        fecha.textContent += ' · desactualizados';
+        fecha.classList.add('vieja');
+      }
+      total += x.resumen.activos;
+    });
+    if (total) document.getElementById('arteValor').textContent = fmt.format(total);
+  }
+  // Tarjetas de elección (una por marketplace)
+  const eleccion = document.getElementById('eleccion');
+  MKTS.forEach(m => {
+    const a = document.createElement('a');
+    a.className = 'opcion ' + m.clave; a.href = 'dashboard.html?m=' + m.clave; a.id = 'op-' + m.clave;
+    const activas = /a$/i.test(m.etq.grupo) ? 'activas' : 'activos';
+    a.innerHTML = '<div class="cab"><div class="nombre"></div></div><div class="desc"></div>' +
+      '<div class="kpis" data-clave="' + m.clave + '">' +
+      '<div class="kpi"><div class="v"><span class="esqueleto"></span></div><div class="l"></div></div>' +
+      '<div class="kpi"><div class="v"><span class="esqueleto"></span></div><div class="l"></div></div>' +
+      '<div class="kpi"><div class="v"><span class="esqueleto"></span></div><div class="l">Total en el catálogo</div></div></div>' +
+      '<div class="pie"><span class="fecha" data-fecha="' + m.clave + '">Cargando…</span><span class="ir">Ver dashboard →</span></div>';
+    a.querySelector('.nombre').textContent = m.nombre;
+    a.querySelector('.desc').textContent = m.descripcion;
+    const l = a.querySelectorAll('.kpi .l');
+    l[0].textContent = m.etq.productos + ' activos';
+    l[1].textContent = m.etq.grupos + ' ' + activas;
+    eleccion.appendChild(a);
+  });
+  Promise.all(MKTS.map(m => cargarDatosMkt(m)
+      .then(j => ({ clave: m.clave, resumen: resumenPortada(adaptarDatos(m, j)) }))
+      .catch(() => ({ clave: m.clave, error: true }))))
+    .then(lista => {
+      lista.filter(x => x.error).forEach(x => {
+        const f = document.querySelector('[data-fecha="' + x.clave + '"]'); if (f) f.textContent = 'No se pudieron cargar los datos.';
+      });
+      pintar(JSON.stringify(lista.filter(x => !x.error)));
+    });
 </script>
 </body>
 </html>
