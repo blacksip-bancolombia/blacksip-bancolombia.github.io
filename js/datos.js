@@ -46,7 +46,11 @@ function adaptarDatos(mkt, j) {
   const productos = j.productos || [];
   if (!productos.length) return { etq, dash: null, historico: null };
 
-  const campos = (j.campos || []).map(c => ({ columna: c.columna, tipo: String(c.tipo || '').toLowerCase(), grafico: !!c.grafico }));
+  // Si una especificación se llama igual que una columna fija (p. ej. "Estado" en Movilidad), se muestra como "Estado (VTEX)"
+  const FIJAS = ['ProductId', etq.producto, etq.grupo, 'Categoría', 'Fecha de lanzamiento', 'Estado', 'SKUs', 'SKUs activos', 'Precio desde',
+    'Última actualización', 'Origen última actualización', 'Días sin actualizar'];
+  const campos = (j.campos || []).map(c => ({ clave: c.columna, columna: FIJAS.includes(c.columna) ? c.columna + ' (VTEX)' : c.columna,
+    tipo: String(c.tipo || '').toLowerCase(), grafico: !!c.grafico }));
   const conRevision = c => c.tipo === 'youtube' || c.tipo === 'telefono';
 
   const columnas = ['ProductId', etq.producto, etq.grupo, 'Categoría', 'Fecha de lanzamiento'];
@@ -67,8 +71,8 @@ function adaptarDatos(mkt, j) {
     const specs = p.specs || {}, rev = p.revisiones || {};
     const valores = [];
     campos.forEach(c => {
-      valores.push(specs[c.columna] ?? '');
-      if (conRevision(c)) valores.push(rev[c.columna] ?? '');
+      valores.push(specs[c.clave] ?? '');
+      if (conRevision(c)) valores.push(rev[c.clave] ?? '');
     });
     const r = rev['Región'];
     if (r && r.indexOf('Departamento sin región') === 0) {
