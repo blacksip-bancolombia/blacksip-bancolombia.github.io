@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Prueba de conexión · BlackSip</title>
+<style>
+  body { font-family: Roboto, Arial, sans-serif; color: #2c2a29; background: #f7f7f7; margin: 0; padding: 40px; }
+  .caja { max-width: 640px; margin: auto; background: #fff; border: 1px solid #e6e4e3; padding: 28px; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  button { background: #2c2a29; color: #fff; border: 0; padding: 10px 18px; font-size: 14px; cursor: pointer; }
+  pre { background: #f1efee; padding: 12px; white-space: pre-wrap; word-break: break-word; font-size: 13px; }
+  .ok { color: #00654A; font-weight: bold; } .mal { color: #B23A0E; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="caja">
+  <h1>Prueba: GitHub Pages → n8n de producción</h1>
+  <p>Llama al webhook de prueba de <b>bic.blacksip.com</b> desde este navegador (POST con JSON, igual que hará la app).</p>
+  <button onclick="probar()">Probar conexión</button>
+  <p id="estado"></p>
+  <pre id="detalle"></pre>
+</div>
+<script>
+async function probar() {
+  const est = document.getElementById('estado'), det = document.getElementById('detalle');
+  est.textContent = 'Probando…'; est.className = ''; det.textContent = '';
+  try {
+    const r = await fetch('https://bic.blacksip.com/webhook/trz-prueba-cors', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mensaje: 'hola desde GitHub Pages' })
+    });
+    const texto = await r.text();
+    est.textContent = r.ok ? 'FUNCIONA: n8n respondió ' + r.status : 'FALLÓ: n8n respondió ' + r.status;
+    est.className = r.ok ? 'ok' : 'mal';
+    det.textContent = texto.slice(0, 600);
+  } catch (e) {
+    est.textContent = 'FALLÓ: el navegador bloqueó la llamada (' + e.message + ')'; est.className = 'mal';
+    det.textContent = 'Abra la consola (F12 → pestaña Console) y mande una captura del mensaje en rojo.';
+  }
+}
+</script>
+</body>
+</html>
