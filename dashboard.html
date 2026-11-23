@@ -12,7 +12,7 @@
       /* Paleta del cliente */
       --negro: #2c2a29; --blanco: #fff; --amarillo: #fdda24; --rosado: #ffb8d2; --naranja: #ff7f41;
       --morado: #9063cd; --celeste: #59cbe8; --verde: #00c389; --gris: #f7f7f7;
-      --gris2: #E6E4E3; --texto2: #66625F; --texto3: #8C8784;
+      --gris2: #E6E4E3; --texto2: #66625F; --texto3: #716C69;
       --cian: #59cbe8; --azul: #9063cd; --rojo: #ff7f41;
       --t-turquesa: #CCF3E7; --t-cian: #DEF5FA; --t-amarillo: #FFF8D3; --t-rojo: #FFE5D9; --t-morado: #E9E0F5;
       /* Datos: morado (único color del cliente con contraste suficiente sobre blanco) */
@@ -20,7 +20,7 @@
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
-    body { font-family: 'Roboto', Arial, sans-serif; font-size: 14px; color: var(--negro); background: var(--gris); min-width: 1200px; }
+    body { font-family: 'Roboto', Arial, sans-serif; font-size: 14px; color: var(--negro); background: var(--gris); }
     h1, h2, h3 { font-family: 'Quicksand', Arial, sans-serif; font-weight: 700; margin: 0; }
     button, input, select { font: inherit; color: inherit; }
     input:focus, select:focus, button:focus-visible { outline: none; border-color: var(--morado) !important; box-shadow: 0 0 0 3px rgba(144,99,205,.2); }
@@ -71,6 +71,7 @@
     .tarjeta { background: var(--blanco); border: 1px solid var(--gris2); border-radius: 2px; padding: 16px 18px; min-width: 0; }
     .tarjeta h3 { font-size: 15px; margin-bottom: 2px; }
     .tarjeta .ayuda { font-size: 12px; color: var(--texto3); margin-bottom: 12px; }
+    .alto2 { grid-row: span 2; }
     .c4 { grid-column: span 4; } .c5 { grid-column: span 5; } .c6 { grid-column: span 6; } .c7 { grid-column: span 7; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
     .vacio-graf { color: var(--texto3); font-size: 13px; padding: 30px 0; text-align: center; }
 
@@ -191,6 +192,19 @@
     .proximamente .idea { border: 1px dashed #CFCBC8; border-radius: 4px; padding: 16px; }
     .proximamente .idea b { display: block; font-family: 'Quicksand', Arial, sans-serif; margin-bottom: 4px; }
     .proximamente .idea span { font-size: 12.5px; color: var(--texto2); }
+    @media (max-width: 900px) {
+      .cabecera { padding: 10px 16px; gap: 10px; flex-wrap: wrap; } .cabecera img { height: 30px; } .cabecera .der { gap: 10px; font-size: 11px; margin-left: 0; width: 100%; justify-content: space-between; } .cabecera .modulo:first-of-type { display: none; } .cabecera .modulo { border-left: 0; padding-left: 0; } .modulos .pronto { display: none; }
+      .contenido { padding: 16px 14px 40px; }
+      .titulo-pagina h1 { font-size: 20px; }
+      .filtros { position: static; } .filtro { flex: 1 1 100%; } .filtro select, .filtro input, .filtro.ancho select, .filtro.ancho input { min-width: 0; width: 100%; }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .kpi { padding: 12px 14px; } .kpi .valor { font-size: 26px; }
+      .rejilla > * { grid-column: span 12 !important; grid-row: auto !important; }
+      .modulos { overflow-x: auto; } .modulos button { padding: 10px 10px; white-space: nowrap; }
+      .dona { grid-template-columns: 1fr; } .dona svg { justify-self: center; } .frescura .ley { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .proximamente .ideas { grid-template-columns: 1fr; }
+      .barra-tabla { flex-wrap: wrap; } .barra-tabla input[type=search] { min-width: 0; width: 100%; }
+      .calidad td.n:nth-child(3) { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -325,7 +339,7 @@
     <section class="rejilla">
       <div class="tarjeta c12 acento-naranja">
         <h3><span data-etq="grupos"></span> con más <span data-etq="productos" data-min></span> por corregir</h3>
-        <div class="ayuda">Proyectos con al menos un dato pendiente (especificación vacía, WhatsApp o video por corregir, sin fecha de lanzamiento). Clic para filtrar.</div>
+        <div class="ayuda"><span data-etq="productos"></span> con al menos un dato pendiente (especificación vacía o por corregir, sin fecha de lanzamiento). Clic para filtrar.</div>
         <div id="gPendientesGrupo"></div>
       </div>
     </section>
@@ -341,7 +355,7 @@
         <input type="search" id="fTexto" placeholder="Buscar por nombre, ID o cualquier dato…" oninput="buscarTabla()">
         <label style="font-size:13px"><input type="checkbox" id="fSoloPeriodo" onchange="pintarTabla(true)"> Solo cargados en el periodo</label>
         <span class="conteo" id="conteoTabla"></span>
-        <button class="btn" onclick="descargarCsv(tablaFilas)">Descargar (Excel / CSV)</button>
+        <button class="btn" onclick="descargarCsv(tablaFilas)">Descargar Excel</button>
       </div>
       <div class="tabla-cont"><table id="tabla"><thead></thead><tbody></tbody></table></div>
       <div class="paginas" id="paginas"></div>
@@ -364,6 +378,8 @@
   </main>
   <div class="tooltip" id="tooltip" role="status"></div>
 
+<script src="app/jszip.min.js"></script>
+<script src="app/excel.js"></script>
 <script src="js/datos.js"></script>
 <script>
   const COLORES = { morado: '#9063cd', celeste: '#59cbe8', verde: '#00c389', naranja: '#ff7f41', amarillo: '#fdda24', rosado: '#ffb8d2', negro: '#2c2a29' };
@@ -861,9 +877,14 @@
     if (R.marca >= 0) cols.unshift(R.marca);
     const especial = i => ['sino', 'youtube', 'telefono'].indexOf(D.tipos[i]) >= 0;
     const sinos = cols.filter(especial), textos = cols.filter(i => !especial(i));
-    textos.forEach(i => {
+    const iMapa = textos.findIndex(i => norm(D.columnas[i]) === 'departamento');
+    if (iMapa > 0) textos.unshift(textos.splice(iMapa, 1)[0]);              // el mapa va primero, a la izquierda
+    const conMapa = iMapa >= 0 && textos.length >= 3;
+    const ancho = k => conMapa ? (k === 0 ? 'c5 alto2' : k <= 2 ? 'c7' : ((textos.length - 3) % 2 === 1 && k === textos.length - 1 ? 'c12' : 'c6'))
+      : (textos.length === 1 ? 'c12' : textos.length % 3 === 0 ? 'c4' : 'c6');
+    textos.forEach((i, k) => {
       const tono = tonos[textos.indexOf(i) % tonos.length];
-      const t = el('div', { class: 'tarjeta acento-' + tono[0] + ' ' + (textos.length === 1 ? 'c12' : textos.length % 3 === 0 ? 'c4' : 'c6') }, [
+      const t = el('div', { class: 'tarjeta acento-' + tono[0] + ' ' + ancho(k) }, [
         el('h3', { text: ETQ.productos + ' por ' + D.columnas[i].toLowerCase() }), el('div', { class: 'ayuda', text: 'Especificación de producto en VTEX' })]);
       const div = el('div', { id: 'g' + i }); t.appendChild(div); sec.appendChild(t);
       if (norm(D.columnas[i]) === 'departamento') { t.querySelector('.ayuda').textContent = 'Cada cuadro es un departamento, ubicado como en el mapa. Clic para filtrar'; mapaColombia(div, i); }
@@ -1087,6 +1108,18 @@
   function descargarCsv(filas, nombre) {
     if (!D) return;
     filas = Array.isArray(filas) ? filas : tablaFilas;
+    if (window.Excel && window.JSZip) {
+      const num = D.tipos.map((t, i) => t === 'numero' || t === 'id' ? i : -1).filter(i => i >= 0);
+      const titulo = (nombre ? nombre + ' · ' : '') + ETQ.productos + ' · ' + ETQ.marketplace;
+      const sub = document.getElementById('subtitulo').textContent + ' · ' + fmt.format(filas.length) + ' filas · descargado el ' +
+        new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'medium', timeStyle: 'short' });
+      const datos = filas.map(f => f.map((v, i) => num.includes(i) && v !== '' && v != null && !isNaN(Number(v)) ? Number(v) : (v ?? '')));
+      Excel.bajar([Excel.tabla({ nombre: 'Datos', titulo, subtitulo: sub, encabezados: D.columnas, filas: datos, numericas: num.filter(i => D.columnas[i] !== 'ProductId') }),
+        { nombre: 'Acerca de', anchos: [110], filas: [['Datos del dashboard de ' + ETQ.marketplace + ' (BlackSip).'], ['Fuente: revisión nocturna de VTEX. ' + sub],
+          ['Activo = producto activo en VTEX con al menos un SKU activo.'], ['Días sin actualizar: desde el último cambio registrado (app, carga masiva o detectado en VTEX).']] }],
+        'Dashboard_' + ETQ.marketplace + (nombre ? '_' + nombre : '') + '_' + hoyIso());
+      return;
+    }
     const esc = v => { const s = String(v === undefined || v === null ? '' : v); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
     const lineas = [D.columnas.map(esc).join(';')].concat(filas.map(f => f.map((v, i) =>
       D.tipos[i] === 'numero' && v !== '' ? String(v).replace('.', ',') : v).map(esc).join(';')));

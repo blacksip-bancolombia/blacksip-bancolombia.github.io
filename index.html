@@ -10,11 +10,11 @@
     :root {
       --negro: #2c2a29; --blanco: #fff; --amarillo: #fdda24; --rosado: #ffb8d2; --naranja: #ff7f41;
       --morado: #9063cd; --celeste: #59cbe8; --verde: #00c389; --gris: #f7f7f7;
-      --gris2: #E6E4E3; --texto2: #66625F; --texto3: #8C8784;
+      --gris2: #E6E4E3; --texto2: #66625F; --texto3: #716C69;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
-    body { font-family: 'Roboto', Arial, sans-serif; font-size: 14px; color: var(--negro); background: var(--gris); min-width: 1100px; }
+    body { font-family: 'Roboto', Arial, sans-serif; font-size: 14px; color: var(--negro); background: var(--gris); }
     h1, h2, h3 { font-family: 'Quicksand', Arial, sans-serif; font-weight: 700; margin: 0; }
 
     .cabecera { background: var(--negro); color: var(--blanco); display: flex; align-items: center; gap: 18px; padding: 12px 28px; }
@@ -55,13 +55,26 @@
     @keyframes brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }
     .sin-datos { font-size: 13px; color: var(--texto3); margin: 22px 0 20px; }
 
-    .pie-pagina { color: var(--texto3); font-size: 11.5px; margin-top: 30px; display: flex; justify-content: space-between; }
+    .pie-pagina { color: var(--texto3); font-size: 11.5px; margin-top: 30px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .cabecera .der { margin-left: auto; }
+    .cabecera .btn-claro { color: #fff; border: 1px solid #555; padding: 7px 12px; border-radius: 2px; text-decoration: none; font-size: 12.5px; white-space: nowrap; }
+    .cabecera .btn-claro:hover, .cabecera .btn-claro:focus-visible { border-color: var(--amarillo); outline: none; }
+    @media (max-width: 900px) {
+      .cabecera { padding: 10px 16px; gap: 12px; } .cabecera img { height: 30px; } .cabecera .modulo { display: none; }
+      .contenido { padding: 0 16px 40px; }
+      .portada { grid-template-columns: 1fr; min-height: 0; padding: 26px 0 6px; gap: 0; }
+      .portada h1 { font-size: 32px; } .portada .bajada { font-size: 15px; } .arte { display: none; }
+      .eleccion { grid-template-columns: 1fr; gap: 16px; }
+      .opcion { padding: 22px 18px 18px; } .opcion .kpi .v { font-size: 24px; } .opcion .kpis { gap: 8px; }
+      .opcion .pie { flex-wrap: wrap; gap: 10px; }
+    }
   </style>
 </head>
 <body>
   <header class="cabecera">
     <img src="img/blacksip-blanco.png" alt="BlackSip">
     <span class="modulo">Dashboards de catálogo VTEX</span>
+    <div class="der"><a class="btn-claro" href="app/" title="Solo para el equipo de BlackSip">App de edición →</a></div>
   </header>
   <div class="acento"></div>
 
@@ -117,7 +130,7 @@
       const v = caja.querySelectorAll('.v');
       v[0].textContent = fmt.format(x.resumen.activos);
       v[1].textContent = fmt.format(x.resumen.grupos);
-      v[2].textContent = fmt.format(x.resumen.total);
+      v[2].textContent = fmt.format(x.resumen.nuevosMes);
       fecha.textContent = 'Datos al ' + fechaTexto(x.resumen.fecha);
       // Se generan cada noche: si tienen más de 30 horas, algo falló en la revisión nocturna
       if (Date.now() - new Date(x.resumen.fecha).getTime() > 30 * 3600 * 1000) {
@@ -138,7 +151,7 @@
       '<div class="kpis" data-clave="' + m.clave + '">' +
       '<div class="kpi"><div class="v"><span class="esqueleto"></span></div><div class="l"></div></div>' +
       '<div class="kpi"><div class="v"><span class="esqueleto"></span></div><div class="l"></div></div>' +
-      '<div class="kpi"><div class="v"><span class="esqueleto"></span></div><div class="l">Total en el catálogo</div></div></div>' +
+      '<div class="kpi"><div class="v"><span class="esqueleto"></span></div><div class="l">Nuevos en ' + ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][Number(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' }).slice(5, 7)) - 1] + '</div></div></div>' +
       '<div class="pie"><span class="fecha" data-fecha="' + m.clave + '">Cargando…</span><span class="ir">Ver dashboard →</span></div>';
     a.querySelector('.nombre').textContent = m.nombre;
     a.querySelector('.desc').textContent = m.descripcion;
