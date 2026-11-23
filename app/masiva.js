@@ -32,8 +32,10 @@ async function idsParaDescargar() {
   if (!ids.length) throw new Error(T('No se encontraron {items} de ese {grupo}.'));
   return { ids, nombre: grupo };
 }
-async function descargarExcel() {
-  const btn = $('mBtnDescargar'), est = $('mEstadoDescarga');
+async function descargarExcel() { return descargar('mBtnDescargar', armarExcel, 'carga_'); }
+async function descargarPlanilla() { return descargar('mBtnPlanilla', armarPlanilla, 'planilla_precios_estado_'); }
+async function descargar(idBoton, armar, prefijo) {
+  const btn = $(idBoton), est = $('mEstadoDescarga');
   btn.disabled = true; est.innerHTML = '<div class="cargando">' + T('Buscando {items}…') + '</div>';
   try {
     const { ids, nombre } = await idsParaDescargar();
@@ -49,8 +51,8 @@ async function descargarExcel() {
     await Promise.all([trabajador(), trabajador(), trabajador()]);       // 3 a la vez para no saturar n8n
     if (!fichas.length) throw new Error(T('No se pudo leer ningún {item}. ') + fallos.slice(0, 3).join('; '));
     fichas.sort((a, b) => ids.indexOf(a.producto.id) - ids.indexOf(b.producto.id));
-    const blob = await armarExcel(fichas);
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'carga_' + MK.clave + '_' + slug(nombre) + '_' + hoyM() + '.xlsx';
+    const blob = await armar(fichas, nombre);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = prefijo + MK.clave + '_' + slug(nombre) + '_' + hoyM() + '.xlsx';
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     est.innerHTML = '<div class="ok-msg">Listo: ' + fichas.length + ' ' + MK.items + ' y ' + fichas.reduce((n, f) => n + (f.skus || []).filter(s => !s.error).length, 0) + ' SKUs.</div>' +
       (fallos.length ? '<div class="error">No se pudieron leer: ' + esc(fallos.join(', ')) + '</div>' : '');
@@ -58,6 +60,8 @@ async function descargarExcel() {
   btn.disabled = false;
 }
 
+// Encabezado amarillo = columna que se puede editar; negro = solo referencia. Precio con separador de miles.
+const estiloCarga = (cols, fijas) => (r, c) => r === 0 ? (c < fijas ? 11 : 7) : c < fijas ? 2 : (cols[c] === 'Precio' ? 15 : 8);
 async function armarExcel(fichas) {
   // Columnas de especificaciones: unión de todos los proyectos, en el orden en que aparecen
   const specP = new Map(), specS = new Map();
@@ -113,7 +117,7 @@ async function armarExcel(fichas) {
   const maxOp = Math.max(1, ...opciones.map(o => o.length));
   const hojaOp = [opciones.map(o => o[0])]; for (let r = 1; r < maxOp; r++) hojaOp.push(opciones.map(o => o[r] ?? ''));
   const instrucciones = [['Cómo usar este archivo'],
-    ['1. Edite solo las columnas blancas. Las grises (ProductId, SkuId, ' + MK.Item + ', ' + MK.Grupo + ') son de referencia: el nombre se cambia en la columna Nombre.'],
+    ['1. Edite solo las columnas de encabezado amarillo. Las de encabezado negro (ProductId, SkuId, ' + MK.Item + ', ' + MK.Grupo + ') son de referencia: el nombre se cambia en la columna Nombre.'],
     ['2. No cambie el orden ni el nombre de las columnas, y no borre las hojas ocultas.'],
     ['3. Campos de lista: elija de la flecha desplegable. Varias opciones en una celda: sepárelas con punto y coma (;).'],
     ['4. Activo: Sí o No. Precio: solo números, sin puntos de miles (ej. 964064622). Se aplica igual a costo, base y lista en VTEX.'],
@@ -121,10 +125,12 @@ async function armarExcel(fichas) {
     ['6. Suba el archivo en la app (Carga masiva → Subir). Verá cada cambio antes de aplicarlo.'],
     ['7. Si alguien cambió algo en VTEX después de esta descarga, ese campo sale como CONFLICTO y no se sobrescribe.'],
     [''], ['Marketplace: ' + MK.nombre + '. Súbalo en la app con ' + MK.nombre + ' seleccionado.'], ['Descargado el ' + new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' }) + ' (valores leídos de VTEX en ese momento).']];
-  const anchos = cols => cols.map((n, i) => i === 0 ? 11 : (n === 'Descripción' ? 60 : Math.min(40, Math.max(12, n.length + 4))));
+  // Ancho según el contenido (hasta 45), para que nombres y valores se lean sin abrir la celda
+  const anchos = (cols, filas) => cols.map((n, i) => i === 0 ? 11 : (n === 'Descripción' ? 60 : Math.min(45, Math.max(12, n.length + 4,
+    ...filas.slice(1, 200).map(f => Math.min(45, String(f[i] ?? '').split('\n')[0].length + 2))))));
   return Excel.crear([
-    { nombre: 'Productos', filas: filasP, anchos: anchos(colsP), soloLectura: [0, 1, 2], validaciones: valP },
-    { nombre: 'SKUs', filas: filasS, anchos: anchos(colsS), soloLectura: [0, 1, 2], validaciones: valS },
+    { nombre: 'Productos', filas: filasP, anchos: anchos(colsP, filasP), soloLectura: [0, 1, 2], validaciones: valP, estilo: estiloCarga(colsP, 3) },
+    { nombre: 'SKUs', filas: filasS, anchos: anchos(colsS, filasS), soloLectura: [0, 1, 2], validaciones: valS, estilo: estiloCarga(colsS, 3) },
     { nombre: 'Opciones', filas: hojaOp, anchos: hojaOp[0].map(() => 28) },
     { nombre: 'Instrucciones', filas: instrucciones, anchos: [110] },
     { nombre: '_original', filas: original, oculta: true },
@@ -138,6 +144,7 @@ async function leerArchivo(input) {
   const est = $('mEstadoSubida'); est.innerHTML = '<div class="cargando">Leyendo el archivo…</div>'; $('mRevision').innerHTML = '';
   try {
     const libro = await Excel.leer(f);
+    if (libro._planilla) { M.cambios = detectarPlanilla(libro); M.archivo = f.name; est.innerHTML = ''; pintarRevision(); input.value = ''; return; }
     for (const h of ['Productos', 'SKUs', '_original', '_campos'])
       if (!libro[h]) throw new Error('Falta la hoja "' + h + '". Use un archivo descargado desde esta app (sin borrar hojas).');
     M.cambios = detectar(libro); M.archivo = f.name;
@@ -272,7 +279,97 @@ async function descargarResultado() {
   const filas = [['ProductId', MK.Item, 'SkuId', 'Campo', 'Antes', 'Nuevo', 'Estado', 'Detalle']];
   for (const x of M.cambios) filas.push([x.product_id, x.proyecto, x.sku_id || '', x.columna, x.antes, x.nuevo,
     x.error ? 'No válido' : (x.resultado || (x.aplicar ? 'Pendiente' : 'No seleccionado')), x.error || x.detalle]);
-  const blob = await Excel.crear([{ nombre: 'Resultado', filas, anchos: [11, 34, 10, 26, 30, 30, 14, 60] }]);
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'resultado_' + (M.archivo || 'carga').replace(/\.xlsx$/i, '') + '.xlsx';
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  const ok = M.cambios.filter(x => x.resultado === 'OK').length, mal = M.cambios.filter(x => x.resultado && x.resultado !== 'OK').length;
+  await Excel.bajar([Excel.tabla({ nombre: 'Resultado', titulo: 'Resultado de la carga masiva · ' + MK.nombre,
+    subtitulo: (M.archivo || 'carga') + ' · ' + ok + ' aplicados, ' + mal + ' con error o conflicto · ' + new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'medium', timeStyle: 'short' }),
+    encabezados: filas[0], filas: filas.slice(1), anchos: [11, 34, 10, 26, 22, 22, 13, 70], resultado: 6 })],
+    'resultado_' + (M.archivo || 'carga').replace(/\.xlsx$/i, ''));
+}
+
+/* ---------------- Planilla de precios y estado (por constructora / concesionario) ----------------
+ * Una fila por SKU: nombre, área o versión, Id (oculto), precio actual/nuevo y estado actual/nuevo.
+ * Pensada para enviarla al cliente: solo se editan las columnas amarillas. La hoja oculta _planilla guarda
+ * el marketplace y los valores del momento de la descarga, para detectar los cambios al subirla.
+ */
+const PL = { hoja: 'Precios y estado', fila0: 3 };                     // filas 1-3: título, descripciones y encabezados
+const ESTADOS = ['Publicado', 'No publicado'];
+function armarPlanilla(fichas, nombre) {
+  const filas = [
+    ['Bancolombia', 'Actualizaciones de Precios y estado', '', '', '', MK.marca, ''],
+    ['En este campo verás reflejado el nombre de tus ' + MK.items + '.\nNo es un campo editable, solo informativo.',
+     MK.clave === 'movilidad' ? 'En este campo verás reflejada la versión de tu vehículo.\nNo es un campo editable, solo informativo.'
+                              : 'En este campo verás reflejadas las áreas de tu proyecto.\nNo es un campo editable, solo informativo.',
+     'Id interno\nSe debe ocultar',
+     'En este campo verás reflejado el precio actual.\nNo es un campo editable, solo informativo.',
+     'En este campo podrás actualizar el precio.\nCampo editable (solo números, sin puntos ni signos).',
+     'En este campo verás reflejado el estado actual.\nNo es un campo editable, solo informativo.',
+     'En este campo podrás actualizar el estado: Publicado o No publicado.\nCampo editable.'],
+    ['Nombre de ' + MK.Item, MK.area, 'Id Bancolombia', 'Precio Actual', 'Precio Nuevo', 'Estado Actual', 'Estado Nuevo']];
+  const oculta = [['_mercado', MK.nombre], ['_grupo', nombre], ['_descargado', new Date().toISOString()], ['sku_id', 'product_id', 'precio', 'estado', 'nombre']];
+  for (const f of fichas) for (const s of f.skus || []) {
+    if (s.error) continue;
+    const precio = s.precio && s.precio.base != null ? Number(s.precio.base) : '';
+    const estado = s.activo ? 'Publicado' : 'No publicado';
+    filas.push([f.producto.nombre || '', s.nombre || '', s.id, precio, precio, estado, estado]);
+    oculta.push([s.id, f.producto.id, precio === '' ? '' : String(precio), estado, f.producto.nombre || '']);
+  }
+  const n = filas.length;
+  const estilo = (r, c) => r === 0 ? (c === 1 ? 4 : 10) : r === 1 ? 5 : r === 2 ? (c === 4 || c === 6 ? 7 : 6) : c === 3 ? 15 : c === 4 ? 16 : (c === 6 ? 9 : 8);
+  const instrucciones = [['Cómo usar esta planilla'],
+    ['1. Cambie solo las columnas amarillas: Precio Nuevo y Estado Nuevo. Las demás son informativas.'],
+    ['2. Precio: solo números, sin puntos de miles ni signo de pesos (ej. 734840505). Se aplica igual a costo, base y lista en VTEX.'],
+    ['3. Estado: elija de la lista Publicado o No publicado.'],
+    ['4. No cambie el orden de las filas ni de las columnas, y no borre la columna oculta Id Bancolombia.'],
+    ['5. Para aplicar los cambios, suba el archivo en la app de BlackSip (Carga masiva → Subir y revisar), con ' + MK.nombre + ' seleccionado.'],
+    [''], [MK.Grupo + ': ' + nombre + ' · descargado el ' + new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' }) + ' (valores leídos de VTEX en ese momento).']];
+  return Excel.crear([
+    { nombre: PL.hoja, filas, anchos: [42, 38, 14, 18, 18, 18, 18], estilo, congelar: 3, ocultas: [2], horizontal: true,
+      combinar: ['B1:E1', 'F1:G1'], altos: { 0: 42, 1: 78, 2: 30 }, filtro: 'A3:G' + Math.max(3, n),
+      validaciones: [{ rango: 'G4:G' + Math.max(4, n + 200), lista: '"' + ESTADOS.join(',') + '"' }] },
+    { nombre: 'Instrucciones', filas: instrucciones, anchos: [120] },
+    { nombre: '_planilla', filas: oculta, oculta: true }
+  ]);
+}
+function detectarPlanilla(libro) {
+  const meta = {}, orig = {};
+  for (const fila of libro._planilla) {
+    if (!fila || fila[0] === '' || fila[0] == null) continue;
+    if (String(fila[0]).startsWith('_')) { meta[fila[0]] = txt(fila[1]); continue; }
+    const id = Number(fila[0]); if (!Number.isInteger(id)) continue;
+    orig[id] = { product_id: Number(fila[1]), precio: txt(fila[2]), estado: txt(fila[3]), nombre: txt(fila[4]) };
+  }
+  const mercado = meta._mercado || '';
+  if (mercado !== MK.nombre) throw new Error('Esta planilla es de ' + (mercado || 'otro marketplace') + ' y la app está en ' + MK.nombre + '. Cambie el marketplace arriba y vuelva a subirla.');
+  const filas = libro[PL.hoja];
+  if (!filas) throw new Error('Falta la hoja "' + PL.hoja + '". Use la planilla descargada desde esta app.');
+  const cambios = [], avisos = [];
+  for (const fila of filas.slice(PL.fila0)) {
+    const id = Number(fila[2]); if (!Number.isInteger(id) || id <= 0) continue;
+    const o = orig[id]; if (!o) { avisos.push('SKU ' + id); continue; }
+    const base = { hoja: 'SKUs', product_id: o.product_id, sku_id: id, proyecto: o.nombre, error: '', alerta: '', aplicar: true, resultado: '', detalle: '' };
+    // Precio
+    const crudo = fila[4], nuevoP = typeof crudo === 'number' ? String(crudo) : txt(crudo).replace(/[$\s.]/g, '').replace(',', '.');
+    if (nuevoP !== '' && !(o.precio !== '' && Number(nuevoP) === Number(o.precio))) {
+      const ch = { ...base, columna: 'Precio', campo: 'Precio', antes: o.precio, nuevo: nuevoP, envioAntes: o.precio };
+      const n = Number(nuevoP);
+      if (!Number.isFinite(n) || n <= 0) ch.error = 'Debe ser un número mayor que cero, sin puntos de miles ni signo de pesos.';
+      else { ch.envio = String(n); const a = Number(o.precio); if (a) { const pct = Math.round((n - a) / a * 100); if (Math.abs(pct) > 30) ch.alerta = (pct > 0 ? '+' : '') + pct + ' %'; } }
+      if (ch.envio === undefined) ch.envio = nuevoP;
+      if (ch.error) ch.aplicar = false;
+      cambios.push(ch);
+    } else if (nuevoP === '' && o.precio !== '') {
+      cambios.push({ ...base, columna: 'Precio', campo: 'Precio', antes: o.precio, nuevo: '', envio: '', envioAntes: o.precio, error: 'Vaciar el precio no está soportado.', aplicar: false });
+    }
+    // Estado
+    const e = normM(fila[6]);
+    const nuevoE = e === 'publicado' || e === 'activo' || e === 'si' ? 'Publicado' : e === 'no publicado' || e === 'inactivo' || e === 'no' ? 'No publicado' : null;
+    if (txt(fila[6]) && nuevoE !== o.estado) {
+      const ch = { ...base, columna: 'Estado', campo: 'Activo', antes: o.estado, nuevo: nuevoE || txt(fila[6]),
+        envio: nuevoE === 'Publicado' ? 'Sí' : 'No', envioAntes: o.estado === 'Publicado' ? 'Sí' : 'No' };
+      if (!nuevoE) { ch.error = 'Escriba Publicado o No publicado.'; ch.aplicar = false; }
+      cambios.push(ch);
+    }
+  }
+  M.avisos = avisos;
+  return cambios;
 }

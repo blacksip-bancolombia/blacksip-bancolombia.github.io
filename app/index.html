@@ -13,12 +13,12 @@
     :root {
       --negro: #2c2a29; --blanco: #fff; --amarillo: #fdda24; --rosado: #ffb8d2; --naranja: #ff7f41;
       --morado: #9063cd; --celeste: #59cbe8; --verde: #00c389; --gris: #f7f7f7;
-      --gris2: #E6E4E3; --texto2: #66625F; --texto3: #8C8784;
+      --gris2: #E6E4E3; --texto2: #66625F; --texto3: #716C69;
       --t-morado: #EFE8F8; --t-verde: #DDF6EE; --t-naranja: #FFE9DE; --t-amarillo: #FFF8D3; --t-celeste: #E2F6FB; --t-rosado: #FFF0F5;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
-    body { font-family: 'Roboto', Arial, sans-serif; font-size: 14px; color: var(--negro); background: var(--gris); min-width: 1100px; }
+    body { font-family: 'Roboto', Arial, sans-serif; font-size: 14px; color: var(--negro); background: var(--gris); }
     h1, h2, h3 { font-family: 'Quicksand', Arial, sans-serif; font-weight: 700; margin: 0; }
     button { font: inherit; cursor: pointer; }
     input, select { font: inherit; }
@@ -155,6 +155,10 @@
     .modal td, .modal th { text-align: left; padding: 7px 6px; border-bottom: 1px solid #F0EEED; vertical-align: top; }
     .modal .acc { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
     .res-ok { color: #00654A; font-weight: 500; } .res-conflicto { color: #8A6A00; font-weight: 500; } .res-error { color: #B23A0E; font-weight: 500; }
+    .btn-planilla { width: 100%; margin-top: 8px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
+    .nota-planilla { font-size: 12px !important; margin-top: 6px !important; }
+    .res:focus-visible, .revisar tr:focus-visible, .kpi.clic:focus-visible { outline: 2px solid var(--morado); outline-offset: -2px; }
+    #mRevision:empty { display: none; }
     .selector-mk { display: inline-flex; background: rgba(255,255,255,.12); border-radius: 8px; padding: 3px; margin-left: 14px; gap: 2px; }
     .selector-mk button { border: 0; background: transparent; color: #fff; font: 500 13px Roboto, sans-serif; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
     .selector-mk button.activo { background: var(--amarillo); color: var(--negro); }
@@ -183,6 +187,20 @@
     .atajos button:hover { border-color: var(--negro); }
     @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     .pie { color: var(--texto3); font-size: 11.5px; margin-top: 24px; display: flex; justify-content: space-between; }
+    @media (max-width: 900px) {
+      .cabecera { padding: 10px 14px; gap: 10px; flex-wrap: wrap; } .cabecera img { height: 30px; } .cabecera .modulo { display: none; }
+      .cabecera #usuario { display: none; } .selector-mk { margin-left: 0; }
+      .contenido { padding: 16px 14px 40px; }
+      .saludo { flex-direction: column; align-items: flex-start; } .saludo h1 { font-size: 22px; } .saludo .fecha-datos { text-align: left; }
+      .layout { grid-template-columns: minmax(0, 1fr); } .layout > * { min-width: 0; } .resultados { max-height: 50vh; }
+      #p-specs, #p-skus, #p-hist { overflow-x: auto; } .pestanas button { flex: 0 0 auto; }
+      .pasos-m { grid-template-columns: 1fr !important; }
+      .ficha-cab { flex-direction: column; } .ficha-cab .enlaces { flex-wrap: wrap; }
+      .pestanas { overflow-x: auto; white-space: nowrap; }
+      .datos { grid-template-columns: 1fr; } .datos .k { border-bottom: 0 !important; padding-bottom: 0 !important; }
+      .sku { grid-template-columns: 1fr; } .sku .img { width: 100%; }
+      #p-hist, #mRevision { overflow-x: auto; }
+    }
   </style>
 </head>
 <body>
@@ -221,12 +239,14 @@
             <input id="mGrupo" list="listaGrupos" placeholder="Constructora" data-ph="{Grupo}" autocomplete="off">
             <div class="o">o</div>
             <textarea id="mIds" rows="2" placeholder="ProductIds separados por coma o espacio (máx. 300)"></textarea>
-            <button class="btn" id="mBtnDescargar" onclick="descargarExcel()">Descargar Excel</button>
+            <button class="btn" id="mBtnDescargar" onclick="descargarExcel()">Descargar Excel completo</button>
+            <button class="btn-sec btn-planilla" id="mBtnPlanilla" onclick="descargarPlanilla()">💲 Planilla de precios y estado</button>
+            <p class="m nota-planilla" data-t="La planilla trae solo precio y estado de cada SKU, lista para enviarla {a_grupo}.">La planilla trae solo precio y estado de cada SKU.</p>
             <div id="mEstadoDescarga"></div>
           </div>
           <div class="tarjeta">
             <h3><span class="num">2</span> Editar en Excel</h3>
-            <p class="m">Cambie solo las columnas blancas. En los campos de lista use la flecha desplegable. Activo: Sí o No. Precios sin puntos de miles.</p>
+            <p class="m">Cambie solo las columnas con <b>encabezado amarillo</b>; las de encabezado negro son de referencia. En los campos de lista use la flecha desplegable. Activo: Sí o No. Precio sin puntos de miles.</p>
             <p class="m">No cambie el nombre ni el orden de las columnas. Lea la hoja <b>Instrucciones</b>.</p>
           </div>
           <div class="tarjeta">
@@ -265,8 +285,8 @@
   const N8N = 'https://bic.blacksip.com';
   /* ---------- Marketplace: cada uno tiene su propio webhook en su flujo de n8n ---------- */
   const MERCADOS = {
-    inmobiliario: { clave: 'inmobiliario', nombre: 'Inmobiliario', webhook: 'trz-app', grupo: 'constructora', Grupo: 'Constructora', item: 'proyecto', items: 'proyectos', Item: 'Proyecto', un: 'una', gActivos: 'Constructoras activas' },
-    movilidad: { clave: 'movilidad', nombre: 'Movilidad', webhook: 'trz-app-movilidad', grupo: 'concesionario', Grupo: 'Concesionario', item: 'vehículo', items: 'vehículos', Item: 'Vehículo', un: 'un', gActivos: 'Concesionarios activos' }
+    inmobiliario: { clave: 'inmobiliario', nombre: 'Inmobiliario', webhook: 'trz-app', grupo: 'constructora', Grupo: 'Constructora', item: 'proyecto', items: 'proyectos', Item: 'Proyecto', un: 'una', gActivos: 'Constructoras activas', a_grupo: 'a la constructora', area: 'Área', marca: 'Tu360Inmobiliario' },
+    movilidad: { clave: 'movilidad', nombre: 'Movilidad', webhook: 'trz-app-movilidad', grupo: 'concesionario', Grupo: 'Concesionario', item: 'vehículo', items: 'vehículos', Item: 'Vehículo', un: 'un', gActivos: 'Concesionarios activos', a_grupo: 'al concesionario', area: 'Versión', marca: 'Tu360Movilidad' }
   };
   const MK = (() => { let k = new URLSearchParams(location.search).get('m');
     if (!MERCADOS[k]) { try { k = sessionStorage.getItem('trz_mk'); } catch (e) { k = null; } }
@@ -349,7 +369,7 @@
     const h = Number(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Bogota' }));
     const parte = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
     $('hola').innerHTML = parte + (nombre ? ', ' + esc(nombre.charAt(0).toUpperCase() + nombre.slice(1)) : '') + ' <span class="mano">👋</span>';
-    $('subSaludo').innerHTML = T('Está editando <b>{nombre}</b>. Busque {un} {item} o use la carga masiva para cambiar varios a la vez.');
+    $('subSaludo').innerHTML = T('Está editando <b>{nombre}</b>. Busque un {item} o use la carga masiva para cambiar varios a la vez.');
     const k = (et, c) => '<div class="kpi cargando-k" style="--c:' + c + '"><div class="et">' + et + '</div><div class="v">—</div><div class="d">&nbsp;</div></div>';
     $('kpis').innerHTML = k('Activos hoy', '#9063cd') + k(MK.gActivos, '#59cbe8') + k('Sin actualizar +90 días', '#ff7f41') + k('Editados esta semana', '#00c389');
   }
@@ -388,7 +408,7 @@
     const v = RES ? RES.revisar.slice(0, 8) : [];
     $('ficha').innerHTML = '<div class="bienvenida">' + (v.length
       ? '<h3>Para revisar</h3><p class="m">' + T('{Item}s activos que llevan más tiempo sin actualizarse ("Sin registro": el sistema aún no ha visto un cambio). Haga clic para abrir uno.') + '</p>' +
-        '<table class="revisar"><tbody>' + v.map(p => '<tr onclick="abrir(' + Number(p.id) + ')"><td><div>' + esc(p.nombre) + '</div><div class="g">' + Number(p.id) + ' · ' + esc(p.grupo || '—') +
+        '<table class="revisar"><tbody>' + v.map(p => '<tr tabindex="0" onclick="abrir(' + Number(p.id) + ')" onkeydown="if(event.key===\'Enter\')abrir(' + Number(p.id) + ')"><td><div>' + esc(p.nombre) + '</div><div class="g">' + Number(p.id) + ' · ' + esc(p.grupo || '—') +
           '</div></td><td class="dias">' + (p.dias === null ? 'Sin registro' : fmt.format(p.dias) + ' días') + '</td></tr>').join('') + '</tbody></table>'
       : '<div class="vacio">' + T('Elija un {item} de la lista para verlo en vivo desde VTEX.') + '</div>') +
       '<div class="atajos"><button onclick="vistaModo(\'masiva\')">📥 Carga masiva por Excel</button>' +
@@ -407,7 +427,7 @@
         if (/^\d+$/.test(q)) { $('resultados').innerHTML = '<div class="vacio">No está en el índice. <a href="#" onclick="abrir(' + Number(q) + ');return false">Abrir el ProductId ' + q + ' directamente</a></div>'; return; }
         $('resultados').innerHTML = '<div class="vacio">' + T('No se encontraron {items}.') + '</div>'; return;
       }
-      $('resultados').innerHTML = r.map(p => '<div class="res' + (p.id === seleccionado ? ' sel' : '') + '" data-id="' + p.id + '" onclick="abrir(' + p.id + ')">' +
+      $('resultados').innerHTML = r.map(p => '<div class="res' + (p.id === seleccionado ? ' sel' : '') + '" data-id="' + p.id + '" tabindex="0" role="button" onclick="abrir(' + p.id + ')" onkeydown="if(event.key===\'Enter\')abrir(' + p.id + ')">' +
         '<div class="n" title="' + esc(p.nombre) + '">' + esc(p.nombre) + '</div>' +
         '<span class="estado ' + (p.activo ? 'si' : 'no') + '">' + (p.activo ? 'Activo' : 'Inactivo') + '</span>' +
         '<div class="m">' + p.id + ' · ' + esc(p.grupo || '—') + (p.categoria ? ' · ' + esc(p.categoria) : '') + '</div>' +
@@ -432,7 +452,7 @@
     fichaActual = j; editando = false;
     const p = j.producto, specs = j.especificaciones || [], skus = j.skus || [], hist = j.historial || [];
     const vacias = specs.filter(s => !s.valores.length).length;
-    const hora = new Date(j.leido_en).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const hora = new Date(j.leido_en).toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
     $('ficha').innerHTML =
       '<div class="ficha-cab"><div><h2>' + esc(p.nombre) + '</h2>' +
       '<div class="meta">ProductId ' + p.id + ' · ' + esc((MK.clave === 'movilidad' ? p.grupo : p.marca) || p.marca || 'Marca ' + p.brand_id) + ' · <span class="estado ' + (p.activo ? 'si' : 'no') + '">' + (p.activo ? 'Activo' : 'Inactivo') + '</span>' +
@@ -446,7 +466,7 @@
       '<button data-p="hist" onclick="pestana(\'hist\')">Historial<span class="cnt">' + hist.length + '</span></button></div>' +
 
       '<div class="panel activo" id="p-datos"><div class="datos">' +
-      [['Nombre', p.nombre], ['Título SEO', p.titulo], ['Categoría', p.categoria], ['Fecha de lanzamiento', p.lanzamiento],
+      [['Nombre', p.nombre], ['Título SEO', p.titulo], ['Categoría', p.categoria], ['Fecha de lanzamiento', fechaCorta(p.lanzamiento)],
        ['Visible', p.visible ? 'Sí' : 'No'], ['Activo', p.activo ? 'Sí' : 'No'], ['LinkId', p.link_id], ['RefId', p.ref_id],
        ['Palabras clave', p.palabras], ['Meta descripción', p.meta]].map(([k, v]) => '<div class="k">' + k + '</div><div class="v">' + valor(v) + '</div>').join('') +
       '<div class="k">Descripción corta</div><div class="v largo">' + valor(p.descripcion_corta) + '</div>' +
@@ -455,7 +475,7 @@
       '<div class="panel" id="p-specs"><div class="filtro-specs"><label><input type="checkbox" onchange="soloVacias(this.checked)"> Solo vacías</label>' +
       '<span>' + T('Incluye los campos de la categoría que el {item} todavía no tiene llenos.') + '</span></div>' +
       '<table class="specs"><thead><tr><th>Especificación</th><th>Valor</th></tr></thead><tbody>' +
-      specs.map(s => '<tr class="' + (s.valores.length ? '' : 'vacia') + '"><td>' + esc(s.nombre) +
+      specs.map(s => '<tr class="' + (s.valores.length ? '' : 'vacia') + '"><td>' + esc(campoVisible(s.nombre)) +
         (s.obligatorio ? '<span class="chip oblig">obligatoria</span>' : '') + (s.grupo ? '<span class="chip grupo">' + esc(s.grupo) + '</span>' : '') + '</td><td>' +
         (s.valores.length ? esc(s.valores.join(', ')) : '<span class="sin">vacía</span>') + '</td></tr>').join('') + '</tbody></table></div>' +
 
@@ -467,12 +487,12 @@
           '<span>Sellers <b>' + (s.sellers.map(x => esc(x.id)).join(', ') || '—') + '</b></span></div>' +
           '<div class="precios"><div class="precio">Base<b>' + plata(s.precio && s.precio.base) + '</b></div><div class="precio">Lista<b>' + plata(s.precio && s.precio.lista) +
           '</b></div><div class="precio">Costo<b>' + plata(s.precio && s.precio.costo) + '</b></div></div>' +
-          (s.specs.length ? '<div class="fila">' + s.specs.map(x => '<span>' + esc(x.nombre) + ': <b>' + esc(x.valores.join(', ')) + '</b></span>').join('') + '</div>' : '') +
+          (s.specs.length ? '<div class="fila">' + s.specs.map(x => '<span>' + esc(campoVisible(x.nombre)) + ': <b>' + esc(x.valores.join(', ')) + '</b></span>').join('') + '</div>' : '') +
           (s.imagenes.length > 1 ? '<div class="miniaturas">' + s.imagenes.slice(1, 13).map(im => '<img src="' + esc(im.url) + '" alt="" loading="lazy">').join('') + '</div>' : '') +
           '</div></div>').join('') : '<div class="vacio">' + T('Este {item} no tiene SKUs.') + '</div>') + '</div></div>' +
 
       '<div class="panel" id="p-hist">' + (hist.length ? '<table class="hist"><thead><tr><th>Fecha</th><th>Entidad</th><th>Campo</th><th>Antes → Ahora</th><th>Origen</th><th>Usuario</th></tr></thead><tbody>' +
-        hist.map(h => '<tr><td>' + esc(fechaLocal(h.fecha)) + '</td><td>' + esc(h.entidad) + (h.sku_id ? ' ' + h.sku_id : '') + '</td><td>' + esc(h.campo) + '</td><td><div class="antes">' +
+        hist.map(h => '<tr><td>' + esc(fechaLocal(h.fecha)) + '</td><td>' + esc(h.entidad) + (h.sku_id ? ' ' + h.sku_id : '') + '</td><td>' + esc(campoVisible(h.campo)) + '</td><td><div class="antes">' +
           esc(h.antes) + '</div><div>' + esc(h.ahora) + '</div></td><td><span class="origen ' + esc(String(h.origen).split(' ')[0]) + '">' + esc(h.origen) + '</span></td><td>' + esc(h.usuario) + '</td></tr>').join('') +
         '</tbody></table>' : '<div class="vacio">' + T('Sin cambios registrados para este {item}.') + '</div>') + '</div>';
   }
@@ -507,7 +527,7 @@
         '<div class="k">Precio</div><div>' + ent('Precio', pr.base == null ? '' : String(pr.base), 'number') + '<span class="tipo-campo">Se aplica igual a costo, base y lista. Sin puntos de miles. Ej.: 964064622</span></div>';
       for (const f of camposSku) {
         const actual = (s.specs.find(x => (f.field_id && x.field_id === f.field_id) || x.nombre === f.nombre) || { valores: [] }).valores;
-        h += '<div class="k">' + esc(f.nombre) + '</div><div>' + (f.tipo_id === 7
+        h += '<div class="k">' + esc(campoVisible(f.nombre)) + '</div><div>' + (f.tipo_id === 7
           ? esc(actual.join(', ') || '—') + '<span class="tipo-campo">Varias opciones: se edita en el admin de VTEX</span>'
           : controlSpec({ nombre: f.nombre, valores: actual, tipo_id: f.tipo_id, opciones: f.opciones }, 'Spec SKU: ', d)) + '</div>';
       }
@@ -574,7 +594,7 @@
     const m = document.createElement('div'); m.className = 'modal-fondo'; m.id = 'modal';
     m.innerHTML = '<div class="modal"><h3>Confirmar cambios en VTEX</h3><div>ProductId ' + fichaActual.producto.id + ' · ' + esc(fichaActual.producto.nombre) + '</div>' +
       '<div class="adv">Se aplicarán en <b>VTEX (producción)</b>. Antes de escribir se vuelve a leer VTEX: si alguien cambió algo mientras usted editaba, ese campo <b>no se sobrescribe</b>.</div>' +
-      '<table><tr><th>Campo</th><th>Antes</th><th>Nuevo</th></tr>' + c.map(x => '<tr><td>' + (x.sku_id ? 'SKU ' + x.sku_id + ' · ' : '') + esc(x.campo) + '</td><td>' + corto(x.antes) + '</td><td>' + corto(x.nuevo) + alertaPrecio(x) + '</td></tr>').join('') + '</table>' +
+      '<table><tr><th>Campo</th><th>Antes</th><th>Nuevo</th></tr>' + c.map(x => '<tr><td>' + (x.sku_id ? 'SKU ' + x.sku_id + ' · ' : '') + esc(campoVisible(x.campo)) + '</td><td>' + corto(x.antes) + '</td><td>' + corto(x.nuevo) + alertaPrecio(x) + '</td></tr>').join('') + '</table>' +
       '<div class="acc"><button class="btn-sec" onclick="cerrarModal()">Volver</button><button class="btn-morado" id="btnAplicar" onclick="guardar()">Aplicar ' + c.length + (c.length === 1 ? ' cambio' : ' cambios') + '</button></div></div>';
     document.body.appendChild(m);
   }
@@ -604,6 +624,9 @@
     }
   }
 
+  // Nombre para mostrar: sin el prefijo interno "Spec:" ni el punto con que terminan los campos de Movilidad
+  function campoVisible(n) { return String(n ?? '').replace(/^SKU (\d+) · /, 'SKU $1 · ').replace(/Spec SKU: /, '').replace(/Spec: /, '').replace(/\.\s*$/, ''); }
+  function fechaCorta(iso) { if (!iso) return ''; const d = new Date(String(iso).slice(0, 10) + 'T12:00:00'); return isNaN(d) ? iso : d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }); }
   function fechaLocal(utc) { if (!utc) return ''; const d = new Date(String(utc).replace(' ', 'T') + 'Z'); return d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }); }
   function pestana(id) {
     document.querySelectorAll('.pestanas button').forEach(b => b.classList.toggle('activo', b.dataset.p === id));
