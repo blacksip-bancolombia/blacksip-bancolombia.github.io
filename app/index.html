@@ -159,6 +159,19 @@
     .nota-planilla { font-size: 12px !important; margin-top: 6px !important; }
     .res:focus-visible, .revisar tr:focus-visible, .kpi.clic:focus-visible { outline: 2px solid var(--morado); outline-offset: -2px; }
     #mRevision:empty { display: none; }
+    .sku.config { grid-template-columns: 1fr; background: var(--gris); border-style: dashed; padding: 10px 14px; color: var(--texto2); font-size: 12.5px; }
+    .skus-acc { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .skus-acc .m { color: var(--texto2); font-size: 12.5px; }
+    .interruptores { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .interruptor { display: inline-flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #CFCBC8; border-radius: 16px; padding: 5px 12px 5px 6px; font: inherit; font-size: 12.5px; cursor: pointer; }
+    .interruptor:hover, .interruptor:focus-visible { border-color: var(--negro); outline: none; }
+    .interruptor .pista { width: 30px; height: 17px; border-radius: 9px; background: #CFCBC8; position: relative; transition: background .15s; }
+    .interruptor .pista::after { content: ''; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; transition: left .15s; }
+    .interruptor.si .pista { background: var(--verde); } .interruptor.si .pista::after { left: 15px; }
+    .form-sku { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 10px 12px; align-items: center; margin: 12px 0; }
+    .form-sku label { font-size: 12.5px; color: var(--texto2); }
+    .form-sku input, .form-sku select { width: 100%; padding: 7px 9px; border: 1px solid #CFCFCF; border-radius: 2px; font: inherit; font-size: 13px; }
+    .form-sku .obl::after { content: ' *'; color: #B23A0E; }
     .selector-mk { display: inline-flex; background: rgba(255,255,255,.12); border-radius: 8px; padding: 3px; margin-left: 14px; gap: 2px; }
     .selector-mk button { border: 0; background: transparent; color: #fff; font: 500 13px Roboto, sans-serif; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
     .selector-mk button.activo { background: var(--amarillo); color: var(--negro); }
@@ -456,13 +469,17 @@
     $('ficha').innerHTML =
       '<div class="ficha-cab"><div><h2>' + esc(p.nombre) + '</h2>' +
       '<div class="meta">ProductId ' + p.id + ' · ' + esc((MK.clave === 'movilidad' ? p.grupo : p.marca) || p.marca || 'Marca ' + p.brand_id) + ' · <span class="estado ' + (p.activo ? 'si' : 'no') + '">' + (p.activo ? 'Activo' : 'Inactivo') + '</span>' +
-      ' · leído de VTEX a las ' + hora + '</div></div>' +
+      ' · leído de VTEX a las ' + hora + '</div>' +
+      '<div class="interruptores">' +
+        '<button class="interruptor' + (p.activo ? ' si' : '') + '" onclick="interruptor(\'Activo\')" title="Activar o inactivar el ' + MK.item + ' en VTEX"><span class="pista"></span>' + (p.activo ? 'Activo en VTEX' : 'Inactivo en VTEX') + '</button>' +
+        '<button class="interruptor' + (p.visible ? ' si' : '') + '" onclick="interruptor(\'Visible\')" title="Mostrar u ocultar en la tienda"><span class="pista"></span>' + (p.visible ? 'Se muestra en la tienda' : 'Oculto en la tienda') + '</button>' +
+      '</div></div>' +
       '<div class="enlaces"><button class="btn-sec" id="btnEditar" onclick="editar()">Editar</button><button class="btn-sec" onclick="abrir(' + p.id + ')">Volver a leer</button>' +
       '<a class="btn-sec" target="_blank" rel="noopener" href="' + esc(j.enlace_admin) + '">Abrir en VTEX ↗</a></div></div>' +
       '<div class="pestanas">' +
       '<button class="activo" data-p="datos" onclick="pestana(\'datos\')">Datos</button>' +
       '<button data-p="specs" onclick="pestana(\'specs\')">Especificaciones<span class="cnt">' + specs.length + (vacias ? ' · ' + vacias + ' vacías' : '') + '</span></button>' +
-      '<button data-p="skus" onclick="pestana(\'skus\')">SKUs<span class="cnt">' + skus.length + '</span></button>' +
+      '<button data-p="skus" onclick="pestana(\'skus\')">SKUs<span class="cnt">' + skus.filter(s => !s.config).length + '</span></button>' +
       '<button data-p="hist" onclick="pestana(\'hist\')">Historial<span class="cnt">' + hist.length + '</span></button></div>' +
 
       '<div class="panel activo" id="p-datos"><div class="datos">' +
@@ -479,7 +496,11 @@
         (s.obligatorio ? '<span class="chip oblig">obligatoria</span>' : '') + (s.grupo ? '<span class="chip grupo">' + esc(s.grupo) + '</span>' : '') + '</td><td>' +
         (s.valores.length ? esc(s.valores.join(', ')) : '<span class="sin">vacía</span>') + '</td></tr>').join('') + '</tbody></table></div>' +
 
-      '<div class="panel" id="p-skus"><div class="skus">' + (skus.length ? skus.map(s => s.error
+      '<div class="panel" id="p-skus"><div class="skus-acc"><span class="m">' + skus.filter(s => !s.config).length + ' SKUs' +
+        (skus.some(s => s.config) ? ' · el SKU de configuración interna no se modifica' : '') + '</span>' +
+        '<button class="btn-sec" onclick="nuevoSku()">+ Agregar SKU</button></div><div class="skus">' + (skus.length ? skus.map(s => s.config
+        ? '<div class="sku config">⚙ SKU de configuración interna · SkuId ' + s.id + ' · no se muestra en la tienda ni se modifica desde la app.</div>'
+        : s.error
         ? '<div class="sku"><div class="img">—</div><div><h3>SKU ' + s.id + '</h3><div class="error">' + esc(s.error) + '</div></div></div>'
         : '<div class="sku"><div class="img">' + (s.imagenes[0] ? '<img src="' + esc(s.imagenes[0].url) + '" alt="" loading="lazy">' : 'Sin imagen') + '</div><div>' +
           '<h3>' + esc(s.nombre) + ' <span class="estado ' + (s.activo ? 'si' : 'no') + '">' + (s.activo ? 'Activo' : 'Inactivo') + '</span></h3>' +
@@ -514,7 +535,7 @@
     // SKUs: estado, nombre, RefId, precios y especificaciones de SKU
     const camposSku = fichaActual.sku_campos || [];
     document.querySelectorAll('#p-skus .sku').forEach((card, i) => {
-      const s = fichaActual.skus[i]; if (!s || s.error) return;
+      const s = fichaActual.skus[i]; if (!s || s.error || s.config) return;
       const d = ' data-sku="' + s.id + '"', pr = s.precio || {};
       const ent = (campo, valor, tipo) => '<input type="' + (tipo || 'text') + '"' + (tipo === 'number' ? ' step="any" min="0" inputmode="decimal"' : '') + d +
         ' data-campo="' + campo + '" data-antes="' + esc(valor ?? '') + '" value="' + esc(valor ?? '') + '" oninput="marcar(this)">';
@@ -604,6 +625,61 @@
     const pct = Math.round((n - a) / a * 100); return Math.abs(pct) > 30 ? '<span class="alerta">⚠ ' + (pct > 0 ? '+' : '') + pct + ' %</span>' : '';
   }
   function cerrarModal() { const m = $('modal'); if (m) m.remove(); }
+  function modal(html) { cerrarModal(); const m = document.createElement('div'); m.className = 'modal-fondo'; m.id = 'modal'; m.innerHTML = '<div class="modal">' + html + '</div>'; document.body.appendChild(m); return m; }
+  function pintarResultado(lista, id) {
+    const clase = x => x === 'OK' ? 'res-ok' : x === 'CONFLICTO' ? 'res-conflicto' : 'res-error';
+    document.querySelector('#modal .modal').innerHTML = '<h3>Resultado</h3><table><tr><th>Campo</th><th>Resultado</th><th>Detalle</th></tr>' +
+      lista.map(x => '<tr><td>' + esc(campoVisible(x.campo)) + '</td><td class="' + clase(x.resultado) + '">' + esc(x.resultado) + '</td><td>' + esc(x.detalle) + '</td></tr>').join('') +
+      '</table><div class="acc"><button class="btn-morado" onclick="cerrarModal(); abrir(' + id + ')">Listo (volver a leer)</button></div>';
+  }
+  /* ---------- Activo / Visible del producto ---------- */
+  function interruptor(campo) {
+    if (!fichaActual || editando) return;
+    const p = fichaActual.producto, actual = campo === 'Activo' ? p.activo : p.visible, nuevo = actual ? 'No' : 'Sí';
+    const texto = campo === 'Activo'
+      ? (actual ? T('Se va a <b>inactivar</b> el {item} en VTEX: deja de estar disponible en la tienda.') : T('Se va a <b>activar</b> el {item} en VTEX. Necesita al menos un SKU activo con precio, imagen y stock.'))
+      : (actual ? T('El {item} dejará de <b>mostrarse en la tienda</b> (sigue activo en VTEX).') : T('El {item} se va a <b>mostrar en la tienda</b>.'));
+    modal('<h3>' + esc(p.nombre) + '</h3><div class="adv">' + texto + '<br>Se aplica en <b>VTEX (producción)</b> y queda en el historial con su correo.</div>' +
+      '<div class="acc"><button class="btn-sec" onclick="cerrarModal()">Cancelar</button><button class="btn-morado" id="btnAplicar" onclick="aplicarInterruptor(\'' + campo + '\', \'' + nuevo + '\')">Sí, ' +
+      (campo === 'Activo' ? (actual ? 'inactivar' : 'activar') : (actual ? 'ocultar' : 'mostrar')) + '</button></div>');
+  }
+  async function aplicarInterruptor(campo, nuevo) {
+    const p = fichaActual.producto; $('btnAplicar').disabled = true; $('btnAplicar').textContent = 'Aplicando…';
+    try { const r = await api({ accion: 'guardar', product_id: p.id, cambios: [{ campo, antes: nuevo === 'Sí' ? 'No' : 'Sí', nuevo }] }); pintarResultado(r.resultados || [], p.id); }
+    catch (e) { document.querySelector('#modal .modal').innerHTML = '<h3>No se pudo aplicar</h3><div class="error">' + esc(e.message) + '</div><div class="acc"><button class="btn-sec" onclick="cerrarModal()">Cerrar</button></div>'; }
+  }
+  /* ---------- SKU nuevo ---------- */
+  function nuevoSku() {
+    if (!fichaActual || editando) return;
+    const campos = (fichaActual.sku_campos || []).filter(f => f.tipo_id !== 7);
+    const control = f => {
+      const op = Array.isArray(f.opciones) ? f.opciones : [];
+      const attr = 'data-spec="' + esc(f.nombre) + '" data-fid="' + (f.field_id || '') + '"';
+      if ((f.tipo_id === 5 || f.tipo_id === 6) && op.length) return '<select ' + attr + '><option value="">— Sin valor —</option>' + op.map(o => '<option>' + esc(o) + '</option>').join('') + '</select>';
+      return '<input ' + attr + (f.tipo_id === 4 ? ' inputmode="decimal" placeholder="Solo números"' : '') + '>';
+    };
+    modal('<h3>Agregar SKU · ' + esc(fichaActual.producto.nombre) + '</h3>' +
+      '<div class="adv">Se crea <b>inactivo</b>, con <b>inventario 1</b> en la misma bodega y con las medidas del último SKU. ' +
+      'Después suba las imágenes en VTEX y actívelo desde la pestaña SKUs (Editar → Estado).</div>' +
+      '<div class="form-sku"><label class="obl" for="nsNombre">Nombre del SKU</label><input id="nsNombre" maxlength="200" placeholder="' +
+      (MK.clave === 'movilidad' ? 'Ej.: Touring 2.0 AT' : 'Ej.: Apartamento-60m²') + '">' +
+      '<label for="nsRef">RefId</label><input id="nsRef" maxlength="100" placeholder="Opcional">' +
+      '<label class="obl" for="nsPrecio">Precio</label><input id="nsPrecio" inputmode="decimal" placeholder="Sin puntos de miles. Ej.: 450000000">' +
+      campos.map(f => '<label>' + esc(campoVisible(f.nombre)) + '</label>' + control(f)).join('') + '</div>' +
+      '<div id="nsError"></div><div class="acc"><button class="btn-sec" onclick="cerrarModal()">Cancelar</button><button class="btn-morado" id="btnAplicar" onclick="crearSku()">Crear SKU en VTEX</button></div>');
+    setTimeout(() => $('nsNombre').focus(), 50);
+  }
+  async function crearSku() {
+    const nombre = $('nsNombre').value.trim(), precio = $('nsPrecio').value.replace(/\s/g, '');
+    const err = m => { $('nsError').innerHTML = '<div class="error">' + esc(m) + '</div>'; };
+    if (!nombre) return err('Escriba el nombre del SKU.');
+    if (!(Number(precio) > 0)) return err('El precio debe ser un número mayor que cero, sin puntos de miles.');
+    if ((fichaActual.skus || []).some(s => !s.config && String(s.nombre || '').trim().toLowerCase() === nombre.toLowerCase()) && !confirm('Ya existe un SKU con ese nombre. ¿Crear otro igual?')) return;
+    const specs = [...document.querySelectorAll('#modal [data-spec]')].map(e => ({ campo: e.dataset.spec, field_id: Number(e.dataset.fid) || null, valor: e.value.trim() })).filter(x => x.valor);
+    const id = fichaActual.producto.id; $('btnAplicar').disabled = true; $('btnAplicar').textContent = 'Creando…';
+    try { const r = await api({ accion: 'crear_sku', product_id: id, nuevo_sku: { nombre, ref_id: $('nsRef').value.trim(), precio, specs } }); pintarResultado(r.resultados || [], id); }
+    catch (e) { $('btnAplicar').disabled = false; $('btnAplicar').textContent = 'Crear SKU en VTEX'; err(e.message); }
+  }
   async function guardar() {
     const c = cambiosPendientes(); const id = fichaActual.producto.id;
     $('btnAplicar').disabled = true; $('btnAplicar').textContent = 'Aplicando…';

@@ -54,7 +54,7 @@ async function descargar(idBoton, armar, prefijo) {
     const blob = await armar(fichas, nombre);
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = prefijo + MK.clave + '_' + slug(nombre) + '_' + hoyM() + '.xlsx';
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    est.innerHTML = '<div class="ok-msg">Listo: ' + fichas.length + ' ' + MK.items + ' y ' + fichas.reduce((n, f) => n + (f.skus || []).filter(s => !s.error).length, 0) + ' SKUs.</div>' +
+    est.innerHTML = '<div class="ok-msg">Listo: ' + fichas.length + ' ' + MK.items + ' y ' + fichas.reduce((n, f) => n + (f.skus || []).filter(s => !s.error && !s.config).length, 0) + ' SKUs.</div>' +
       (fallos.length ? '<div class="error">No se pudieron leer: ' + esc(fallos.join(', ')) + '</div>' : '');
   } catch (e) { est.innerHTML = '<div class="error">' + esc(e.message) + '</div>'; }
   btn.disabled = false;
@@ -84,7 +84,7 @@ async function armarExcel(fichas) {
     }
     filasP.push(fila);
     for (const s of f.skus || []) {
-      if (s.error) continue;
+      if (s.error || s.config) continue;              // el SKU de configuración interna no se descarga
       const pr = s.precio || {};
       const fs = [s.id, p.id, p.nombre || '', s.activo ? 'Sí' : 'No', txt(s.nombre), txt(s.ref_id), pr.base ?? ''];
       original.push(['SKUs', s.id, '__fila', '1']); original.push(['SKUs', s.id, 'Activo', s.activo ? 'Sí' : 'No']);
@@ -307,7 +307,7 @@ function armarPlanilla(fichas, nombre) {
     ['Nombre de ' + MK.Item, MK.area, 'Id Bancolombia', 'Precio Actual', 'Precio Nuevo', 'Estado Actual', 'Estado Nuevo']];
   const oculta = [['_mercado', MK.nombre], ['_grupo', nombre], ['_descargado', new Date().toISOString()], ['sku_id', 'product_id', 'precio', 'estado', 'nombre']];
   for (const f of fichas) for (const s of f.skus || []) {
-    if (s.error) continue;
+    if (s.error || s.config) continue;                // el SKU de configuración interna no se descarga
     const precio = s.precio && s.precio.base != null ? Number(s.precio.base) : '';
     const estado = s.activo ? 'Publicado' : 'No publicado';
     filas.push([f.producto.nombre || '', s.nombre || '', s.id, precio, precio, estado, estado]);
