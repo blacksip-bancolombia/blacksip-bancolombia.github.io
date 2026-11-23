@@ -658,7 +658,7 @@
     const viejos = base.filter(f => f[R.dias] !== '' && Number(f[R.dias]) > DIAS_VIEJO).length;
     const sinReg = base.filter(f => f[R.dias] === '').length;
     const kpis = [
-      { n: ETQ.productos + ' activos', v: fmt.format(activos.length), nota: 'de ' + fmt.format(delGrupo.length) + ' en total · hoy' },
+      { n: ETQ.productos + ' activos', v: fmt.format(activos.length), nota: 'hoy · según la revisión de anoche' },
       { n: GRUPOS_ACTIVOS, v: fmt.format(Object.keys(grupos).length), nota: 'con al menos un ' + ETQ.producto.toLowerCase() + ' activo' },
       { n: 'Promedio de activos', v: prom.dias ? fmt.format(Math.round(prom.valor)) : '—',
         nota: !prom.dias ? 'Se calcula desde la primera revisión nocturna'
