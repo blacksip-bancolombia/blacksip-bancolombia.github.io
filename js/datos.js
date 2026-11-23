@@ -13,7 +13,7 @@ const MKTS = [
   },
   {
     clave: 'movilidad', nombre: 'Movilidad', descripcion: 'Vehículos publicados por los concesionarios',
-    etq: { marketplace: 'Movilidad', grupo: 'Concesionario', grupos: 'Concesionarios', producto: 'Producto', productos: 'Productos', marcaAparte: false }
+    etq: { marketplace: 'Movilidad', grupo: 'Concesionario', grupos: 'Concesionarios', producto: 'Vehículo', productos: 'Vehículos', marcaAparte: false }
   }
 ];
 const CATEGORIA_FUERA = 'Otra categoría (revisar)';
@@ -49,7 +49,8 @@ function adaptarDatos(mkt, j) {
   // Si una especificación se llama igual que una columna fija (p. ej. "Estado" en Movilidad), se muestra como "Estado (VTEX)"
   const FIJAS = ['ProductId', etq.producto, etq.grupo, 'Categoría', 'Fecha de lanzamiento', 'Estado', 'SKUs', 'SKUs activos', 'Precio desde',
     'Última actualización', 'Origen última actualización', 'Días sin actualizar'];
-  const campos = (j.campos || []).map(c => ({ clave: c.columna, columna: FIJAS.includes(c.columna) ? c.columna + ' (VTEX)' : c.columna,
+  const visible = n => String(n || '').replace(/\.\s*$/, '');
+  const campos = (j.campos || []).map(c => ({ clave: c.columna, columna: FIJAS.includes(visible(c.columna)) ? visible(c.columna) + ' (VTEX)' : visible(c.columna),
     tipo: String(c.tipo || '').toLowerCase(), grafico: !!c.grafico }));
   const conRevision = c => c.tipo === 'youtube' || c.tipo === 'telefono';
 
@@ -76,8 +77,7 @@ function adaptarDatos(mkt, j) {
     });
     const r = rev['Región'];
     if (r && r.indexOf('Departamento sin región') === 0) {
-      const dep = r.split(': ').slice(1).join(': ');
-      sinRegion[dep] = (sinRegion[dep] || 0) + 1;
+      r.split(': ').slice(1).join(': ').split(/\s*,\s*/).filter(Boolean).forEach(dep => { sinRegion[dep] = (sinRegion[dep] || 0) + 1; });
     }
     const dias = p.ultima_actualizacion
       ? Math.max(0, Math.floor((ahora - new Date(utcAIso(p.ultima_actualizacion)).getTime()) / 86400000)) : '';
@@ -130,5 +130,8 @@ function resumenPortada(datos) {
   const activos = D.filas.filter(f => f[R.estado] === 'Activo');
   const grupos = new Set();
   activos.forEach(f => String(f[R.grupo] || '').split(' | ').filter(Boolean).forEach(g => grupos.add(g)));
-  return { fecha: D.fecha, activos: activos.length, grupos: grupos.size, total: D.filas.length };
+  // Nuevos este mes: activos cuya fecha de lanzamiento de VTEX cae en el mes actual (hora Colombia)
+  const mes = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' }).slice(0, 7);
+  const nuevosMes = activos.filter(f => String(f[R.lanzamiento] || '').slice(0, 7) === mes).length;
+  return { fecha: D.fecha, activos: activos.length, grupos: grupos.size, total: D.filas.length, nuevosMes };
 }
