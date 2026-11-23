@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es" translate="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="google" content="notranslate">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>App de edición · BlackSip</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root {
+      --negro: #2c2a29; --blanco: #fff; --amarillo: #fdda24; --rosado: #ffb8d2; --naranja: #ff7f41;
+      --morado: #9063cd; --celeste: #59cbe8; --verde: #00c389; --gris: #f7f7f7;
+      --gris2: #E6E4E3; --texto2: #66625F; --texto3: #8C8784;
+      --t-morado: #EFE8F8; --t-verde: #DDF6EE; --t-naranja: #FFE9DE; --t-amarillo: #FFF8D3; --t-celeste: #E2F6FB; --t-rosado: #FFF0F5;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { font-family: 'Roboto', Arial, sans-serif; font-size: 14px; color: var(--negro); background: var(--gris); min-width: 1100px; }
+    h1, h2, h3 { font-family: 'Quicksand', Arial, sans-serif; font-weight: 700; margin: 0; }
+    button { font: inherit; cursor: pointer; }
+    input, select { font: inherit; }
+    .cabecera { background: var(--negro); color: var(--blanco); display: flex; align-items: center; gap: 18px; padding: 12px 28px; }
+    .cabecera img { height: 36px; display: block; }
+    .cabecera .modulo { font-family: 'Quicksand', Arial, sans-serif; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; border-left: 1px solid #555; padding-left: 18px; }
+    .cabecera .der { margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 13px; }
+    .btn-claro { background: transparent; color: var(--blanco); border: 1px solid #777; border-radius: 2px; padding: 6px 12px; text-decoration: none; font-size: 12.5px; }
+    .btn-claro:hover { border-color: var(--blanco); }
+    .acento { height: 5px; background: linear-gradient(90deg, var(--amarillo) 0 20%, var(--naranja) 20% 40%, var(--rosado) 40% 60%, var(--morado) 60% 80%, var(--celeste) 80% 100%); }
+    .contenido { max-width: 1320px; margin: 0 auto; padding: 22px 28px 60px; }
+    .tarjeta { background: var(--blanco); border: 1px solid var(--gris2); border-radius: 2px; padding: 18px 20px; }
+    .aviso-lectura { background: var(--t-amarillo); border: 1px solid #F2DD72; color: #5E4E00; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; border-radius: 2px; }
+    .error { background: var(--t-naranja); border: 1px solid #FFC2A3; color: #8A3A12; padding: 10px 14px; font-size: 13px; margin: 12px 0; border-radius: 2px; }
+    .vacio { color: var(--texto3); font-size: 13px; padding: 24px 0; text-align: center; }
+    .cargando { color: var(--texto2); font-size: 13px; padding: 24px 0; text-align: center; }
+
+    /* Inicio de sesión */
+    .login { max-width: 460px; margin: 70px auto; text-align: center; padding: 34px 30px; }
+    .login h1 { font-size: 24px; margin-bottom: 8px; }
+    .login p { color: var(--texto2); line-height: 1.5; margin: 0 0 22px; }
+    .login #botonGoogle { display: flex; justify-content: center; min-height: 44px; }
+
+    /* Búsqueda */
+    .layout { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 16px; align-items: start; }
+    .busqueda .campos { display: grid; gap: 10px; margin: 12px 0; }
+    .busqueda input, .busqueda select { padding: 9px 10px; border: 1px solid #CFCFCF; border-radius: 2px; width: 100%; background: #fff; }
+    .busqueda input:focus, .busqueda select:focus { outline: none; border-color: var(--morado); box-shadow: 0 0 0 3px rgba(144,99,205,.18); }
+    .btn { background: var(--negro); color: var(--blanco); border: 0; padding: 9px 16px; border-radius: 2px; font-weight: 500; }
+    .btn:hover { background: #000; }
+    .resultados { max-height: calc(100vh - 330px); overflow: auto; border-top: 1px solid var(--gris2); margin-top: 6px; }
+    .res { padding: 10px 6px; border-bottom: 1px solid #F0EEED; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; }
+    .res:hover { background: #FAF8FC; }
+    .res.sel { background: var(--t-morado); box-shadow: inset 3px 0 0 var(--morado); }
+    .res .n { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .res .m { font-size: 12px; color: var(--texto2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .estado { font-size: 11px; padding: 2px 8px; border-radius: 10px; white-space: nowrap; align-self: start; }
+    .estado.si { background: var(--t-verde); color: #00654A; } .estado.no { background: #EEECEB; color: var(--texto2); }
+    .conteo { font-size: 12px; color: var(--texto3); margin-top: 8px; }
+
+    /* Ficha */
+    .ficha-cab { display: flex; align-items: flex-start; gap: 16px; justify-content: space-between; }
+    .ficha-cab h2 { font-size: 20px; }
+    .ficha-cab .meta { color: var(--texto2); font-size: 13px; margin-top: 4px; }
+    .enlaces { display: flex; gap: 8px; }
+    .btn-sec { background: #fff; border: 1px solid #CFCBC8; color: var(--negro); padding: 7px 12px; border-radius: 2px; text-decoration: none; font-size: 12.5px; white-space: nowrap; }
+    .btn-sec:hover { border-color: var(--negro); }
+    .pestanas { display: flex; gap: 4px; border-bottom: 1px solid var(--gris2); margin: 16px 0 14px; }
+    .pestanas button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 9px 14px; color: var(--texto2); font-weight: 500; margin-bottom: -1px; }
+    .pestanas button.activo { color: var(--negro); border-bottom-color: var(--morado); font-weight: 700; }
+    .pestanas .cnt { font-size: 11px; background: #EEECEB; padding: 1px 7px; border-radius: 8px; margin-left: 6px; }
+    .panel { display: none; } .panel.activo { display: block; }
+    .datos { display: grid; grid-template-columns: 200px minmax(0, 1fr); border-top: 1px solid #F0EEED; }
+    .datos > div { padding: 9px 6px; border-bottom: 1px solid #F0EEED; }
+    .datos .k { color: var(--texto2); font-size: 12.5px; }
+    .datos .v { white-space: pre-wrap; word-break: break-word; }
+    .datos .v.largo { max-height: 140px; overflow: auto; font-size: 13px; color: #444; }
+    .sin { color: var(--texto3); font-style: italic; }
+    .specs { width: 100%; border-collapse: collapse; }
+    .specs th { text-align: left; font-size: 12px; color: var(--texto2); font-weight: 500; padding: 8px 6px; border-bottom: 1px solid var(--gris2); }
+    .specs td { padding: 8px 6px; border-bottom: 1px solid #F0EEED; vertical-align: top; }
+    .specs tr.vacia td:first-child { box-shadow: inset 3px 0 0 var(--naranja); }
+    .chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 8px; margin-left: 6px; }
+    .chip.oblig { background: var(--t-naranja); color: #8A3A12; } .chip.grupo { background: #EEECEB; color: var(--texto2); }
+    .filtro-specs { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; font-size: 13px; color: var(--texto2); }
+    .skus { display: grid; gap: 12px; }
+    .sku { border: 1px solid var(--gris2); border-radius: 2px; padding: 14px; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; }
+    .sku .img { width: 150px; height: 112px; background: #F1EFEE; border-radius: 2px; overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--texto3); font-size: 12px; }
+    .sku .img img { width: 100%; height: 100%; object-fit: cover; }
+    .sku h3 { font-size: 15px; margin-bottom: 6px; }
+    .sku .fila { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: #444; margin-bottom: 8px; }
+    .sku .fila b { color: var(--negro); font-weight: 500; }
+    .precios { display: flex; gap: 10px; margin: 8px 0; }
+    .precio { background: var(--t-celeste); padding: 6px 10px; border-radius: 2px; font-size: 12px; color: #1E6377; }
+    .precio b { display: block; font-size: 15px; color: var(--negro); font-variant-numeric: tabular-nums; }
+    .miniaturas { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .miniaturas img { width: 44px; height: 34px; object-fit: cover; border-radius: 2px; border: 1px solid var(--gris2); }
+    .hist { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .hist th { text-align: left; font-size: 12px; color: var(--texto2); font-weight: 500; padding: 8px 6px; border-bottom: 1px solid var(--gris2); }
+    .hist td { padding: 8px 6px; border-bottom: 1px solid #F0EEED; vertical-align: top; }
+    .hist .antes { color: var(--texto3); }
+    .origen { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #EEECEB; }
+    .origen.Externo { background: var(--t-rosado); color: #8B2F52; } .origen.App { background: var(--t-morado); color: #5B3A8C; }
+    .editable textarea, .editable input { width: 100%; padding: 7px 9px; border: 1px solid #CFCFCF; border-radius: 2px; font: inherit; font-size: 13px; resize: vertical; }
+    .editable textarea:focus, .editable input:focus { outline: none; border-color: var(--morado); box-shadow: 0 0 0 3px rgba(144,99,205,.18); }
+    .editable .cambiado { border-color: var(--morado); background: #FCFAFE; }
+    .editable select { width: 100%; padding: 7px 9px; border: 1px solid #CFCFCF; border-radius: 2px; font: inherit; font-size: 13px; background: #fff; }
+    .editable select:focus { outline: none; border-color: var(--morado); box-shadow: 0 0 0 3px rgba(144,99,205,.18); }
+    .multi { position: relative; }
+    .multi summary { list-style: none; cursor: pointer; padding: 7px 28px 7px 9px; border: 1px solid #CFCFCF; border-radius: 2px; font-size: 13px; background: #fff; position: relative; min-height: 34px; }
+    .multi summary::-webkit-details-marker { display: none; }
+    .multi summary::after { content: '▾'; position: absolute; right: 10px; top: 7px; color: #777; }
+    .multi.cambiado summary { border-color: var(--morado); background: #FCFAFE; }
+    .multi .ops { position: absolute; z-index: 20; left: 0; right: 0; max-height: 240px; overflow: auto; background: #fff; border: 1px solid #CFCFCF; border-top: 0; box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+    .multi .ops label { display: flex; gap: 8px; align-items: center; padding: 6px 10px; font-size: 13px; cursor: pointer; }
+    .multi .ops label:hover { background: #F4EFFA; }
+    .editable .multi .ops input[type=checkbox] { width: auto; padding: 0; margin: 0; flex: none; accent-color: var(--morado); }
+    .tipo-campo { display: block; font-size: 11px; color: #888; margin-top: 3px; }
+    .sku-edicion { grid-column: 1 / -1; border-top: 1px dashed var(--gris2); padding-top: 12px; margin-top: 4px; display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 8px 14px; align-items: start; font-size: 13px; }
+    .sku-edicion .k { color: #555; padding-top: 8px; }
+    .sku-edicion .titulo { grid-column: 1 / -1; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--morado); }
+    .modos { display: flex; gap: 0; margin-bottom: 14px; }
+    .modos button { background: #fff; border: 1px solid #CFCBC8; padding: 9px 16px; font: inherit; font-size: 13px; cursor: pointer; color: var(--texto2); }
+    .modos button + button { border-left: 0; }
+    .modos button.activo { background: var(--negro); color: #fff; border-color: var(--negro); }
+    .pasos-m { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+    .pasos-m h3 { font-size: 15px; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+    .pasos-m .num { width: 24px; height: 24px; border-radius: 50%; background: var(--morado); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+    .pasos-m input, .pasos-m textarea { width: 100%; padding: 8px 10px; border: 1px solid #CFCFCF; border-radius: 2px; font: inherit; font-size: 13px; margin-bottom: 8px; }
+    .pasos-m .o { text-align: center; font-size: 12px; color: var(--texto3); margin: -2px 0 6px; }
+    .pasos-m .m, #mRevision .m { font-size: 12px; color: var(--texto2); }
+    .pasos-m .btn { width: 100%; cursor: pointer; }
+    .btn.subir { display: block; text-align: center; margin-top: 8px; }
+    .progreso { height: 6px; background: var(--gris2); border-radius: 3px; overflow: hidden; margin: 10px 0 6px; }
+    .progreso div { height: 100%; background: var(--morado); transition: width .3s; }
+    .ok-msg { margin-top: 10px; padding: 8px 10px; background: var(--t-verde); color: #0B6B4F; font-size: 13px; border-radius: 2px; }
+    .resumen-m { font-size: 13.5px; margin-bottom: 10px; }
+    .tabla-m { max-height: 60vh; overflow: auto; border: 1px solid var(--gris2); }
+    .tabla-m table { width: 100%; }
+    .tabla-m thead th { position: sticky; top: 0; background: #fff; z-index: 1; }
+    .barra-m { display: flex; gap: 10px; align-items: center; justify-content: flex-end; margin-top: 12px; }
+    .barra-m #mInfo { flex: 1; font-size: 13px; }
+    .barra-m #mInfo .progreso { max-width: 360px; }
+    .alerta { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 2px; background: #FFE9DE; color: #9A3B0B; font-size: 11px; font-weight: 600; }
+    .barra-edicion { position: sticky; bottom: 0; background: var(--blanco); border-top: 1px solid var(--gris2); margin: 14px -20px -18px; padding: 12px 20px; display: flex; gap: 10px; align-items: center; }
+    .barra-edicion .info { font-size: 13px; color: var(--texto2); margin-right: auto; }
+    .btn-morado { background: var(--morado); color: #fff; border: 0; padding: 9px 16px; border-radius: 2px; font-weight: 500; }
+    .btn-morado:disabled { background: #C9B7E6; cursor: default; }
+    .modal-fondo { position: fixed; inset: 0; background: rgba(44,42,41,.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
+    .modal { background: #fff; width: 760px; max-height: 80vh; overflow: auto; border-radius: 4px; padding: 22px 24px; }
+    .modal h3 { font-size: 17px; margin-bottom: 6px; }
+    .modal .adv { background: var(--t-naranja); color: #8A3A12; padding: 8px 12px; font-size: 13px; border-radius: 2px; margin: 10px 0 14px; }
+    .modal table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .modal td, .modal th { text-align: left; padding: 7px 6px; border-bottom: 1px solid #F0EEED; vertical-align: top; }
+    .modal .acc { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+    .res-ok { color: #00654A; font-weight: 500; } .res-conflicto { color: #8A6A00; font-weight: 500; } .res-error { color: #B23A0E; font-weight: 500; }
+    .selector-mk { display: inline-flex; background: rgba(255,255,255,.12); border-radius: 8px; padding: 3px; margin-left: 14px; gap: 2px; }
+    .selector-mk button { border: 0; background: transparent; color: #fff; font: 500 13px Roboto, sans-serif; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+    .selector-mk button.activo { background: var(--amarillo); color: var(--negro); }
+    .saludo { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 4px 0 14px; }
+    .saludo h1 { font-family: Quicksand, sans-serif; font-weight: 700; font-size: 26px; margin: 0; color: var(--negro); }
+    .saludo h1 .mano { display: inline-block; transform-origin: 70% 70%; animation: saludar 1.6s ease 1; }
+    @keyframes saludar { 0%,60%,100% { transform: rotate(0) } 15%,45% { transform: rotate(14deg) } 30% { transform: rotate(-8deg) } }
+    .saludo .sub { color: var(--texto2); font-size: 13.5px; margin-top: 4px; }
+    .saludo .fecha-datos { color: var(--texto3); font-size: 12px; text-align: right; }
+    .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .kpi { background: #fff; border: 1px solid var(--gris2); border-top: 4px solid var(--c); padding: 14px 16px 12px; border-radius: 2px; }
+    .kpi.clic { cursor: pointer; } .kpi.clic:hover { box-shadow: 0 2px 10px rgba(44,42,41,.08); }
+    .kpi .et { font-size: 12px; color: var(--texto2); text-transform: uppercase; letter-spacing: .04em; }
+    .kpi .v { font-family: Quicksand, sans-serif; font-weight: 700; font-size: 30px; line-height: 1.15; margin-top: 4px; color: var(--negro); }
+    .kpi .d { font-size: 12px; color: var(--texto3); margin-top: 2px; }
+    .kpi.cargando-k .v { color: var(--gris2); }
+    .bienvenida h3 { margin: 0 0 4px; font-family: Quicksand, sans-serif; }
+    .bienvenida .m { color: var(--texto2); font-size: 13px; margin: 0 0 12px; }
+    .revisar { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .revisar td { padding: 9px 6px; border-bottom: 1px solid #F0EEED; }
+    .revisar tr { cursor: pointer; } .revisar tr:hover td { background: var(--gris); }
+    .revisar .dias { text-align: right; white-space: nowrap; font-weight: 500; color: #B23A0E; }
+    .revisar .g { color: var(--texto3); font-size: 12px; }
+    .atajos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .atajos button { background: var(--gris); border: 1px solid var(--gris2); padding: 8px 12px; font: inherit; font-size: 12.5px; cursor: pointer; border-radius: 2px; }
+    .atajos button:hover { border-color: var(--negro); }
+    @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .pie { color: var(--texto3); font-size: 11.5px; margin-top: 24px; display: flex; justify-content: space-between; }
+  </style>
+</head>
+<body>
+  <header class="cabecera">
+    <img src="../img/blacksip-blanco.png" alt="BlackSip">
+    <span class="modulo">App de edición</span>
+    <span class="selector-mk" id="selectorMk"><button data-k="inmobiliario" onclick="cambiarMercado('inmobiliario')">Inmobiliario</button><button data-k="movilidad" onclick="cambiarMercado('movilidad')">Movilidad</button></span>
+    <div class="der">
+      <span id="usuario"></span>
+      <button class="btn-claro" id="btnSalir" style="display:none" onclick="salir()">Salir</button>
+      <a class="btn-claro" id="lnkDashboard" href="../dashboard.html?m=inmobiliario">Dashboard</a>
+    </div>
+  </header>
+  <div class="acento"></div>
+
+  <main class="contenido">
+    <!-- Inicio de sesión -->
+    <section class="tarjeta login" id="vistaLogin">
+      <h1>App de edición</h1>
+      <p>Solo para el equipo de BlackSip. Inicie sesión con su cuenta <b>@blacksip.com</b>.</p>
+      <div id="botonGoogle"></div>
+      <div id="errorLogin"></div>
+    </section>
+
+    <!-- App -->
+    <section id="vistaApp" style="display:none">
+      <div class="saludo"><div><h1 id="hola">Hola <span class="mano">👋</span></h1><div class="sub" id="subSaludo"></div></div><div class="fecha-datos" id="fechaDatos"></div></div>
+      <div class="kpis" id="kpis"></div>
+      <div class="aviso-lectura">Los cambios se aplican <b>directamente en VTEX (producción)</b> y quedan en el historial con su correo. Revise bien antes de aplicar.</div>
+      <div class="modos"><button data-m="uno" class="activo" onclick="vistaModo('uno')" data-t="Editar un {item}">Editar un proyecto</button><button data-m="masiva" onclick="vistaModo('masiva')">Carga masiva (Excel)</button></div>
+      <div id="vistaMasiva" style="display:none">
+        <div class="pasos-m">
+          <div class="tarjeta">
+            <h3><span class="num">1</span> Descargar el Excel</h3>
+            <p class="m" data-t="Se lee cada {item} &lt;b&gt;en vivo&lt;/b&gt; desde VTEX (tarda unos segundos por {item}).">Se lee cada proyecto <b>en vivo</b> desde VTEX (tarda unos segundos por proyecto).</p>
+            <input id="mGrupo" list="listaGrupos" placeholder="Constructora" data-ph="{Grupo}" autocomplete="off">
+            <div class="o">o</div>
+            <textarea id="mIds" rows="2" placeholder="ProductIds separados por coma o espacio (máx. 300)"></textarea>
+            <button class="btn" id="mBtnDescargar" onclick="descargarExcel()">Descargar Excel</button>
+            <div id="mEstadoDescarga"></div>
+          </div>
+          <div class="tarjeta">
+            <h3><span class="num">2</span> Editar en Excel</h3>
+            <p class="m">Cambie solo las columnas blancas. En los campos de lista use la flecha desplegable. Activo: Sí o No. Precios sin puntos de miles.</p>
+            <p class="m">No cambie el nombre ni el orden de las columnas. Lea la hoja <b>Instrucciones</b>.</p>
+          </div>
+          <div class="tarjeta">
+            <h3><span class="num">3</span> Subir y revisar</h3>
+            <p class="m">Verá cada cambio con su "antes → nuevo" y podrá elegir cuáles aplicar.</p>
+            <label class="btn subir">Elegir archivo .xlsx<input type="file" accept=".xlsx" onchange="leerArchivo(this)" hidden></label>
+            <div id="mEstadoSubida"></div>
+          </div>
+        </div>
+        <div class="tarjeta" id="mRevision"></div>
+      </div>
+      <div class="layout">
+        <div class="tarjeta busqueda">
+          <h3 data-t="Buscar {item}">Buscar proyecto</h3>
+          <form class="campos" onsubmit="buscar(); return false;">
+            <input id="q" placeholder="Nombre, ProductId o SkuId" autocomplete="off">
+            <input id="grupo" list="listaGrupos" placeholder="Constructora (todas)" data-ph="{Grupo} (todos)" autocomplete="off">
+            <datalist id="listaGrupos"></datalist>
+            <button class="btn" type="submit">Buscar</button>
+          </form>
+          <div id="resultados" class="resultados"></div>
+          <div class="conteo" id="conteo"></div>
+        </div>
+        <div class="tarjeta" id="ficha"></div>
+      </div>
+    </section>
+
+    <div class="pie"><span>Lee VTEX en el momento · cada cambio queda en el historial</span><span>BlackSip · Digital Commerce Partners</span></div>
+  </main>
+
+<script src="jszip.min.js"></script>
+<script src="excel.js"></script>
+<script src="masiva.js"></script>
+<script>
+  const CLIENT_ID = '337410357638-1k3g7nsofecsk14j7pccuildi6ein735.apps.googleusercontent.com';
+  const N8N = 'https://bic.blacksip.com';
+  /* ---------- Marketplace: cada uno tiene su propio webhook en su flujo de n8n ---------- */
+  const MERCADOS = {
+    inmobiliario: { clave: 'inmobiliario', nombre: 'Inmobiliario', webhook: 'trz-app', grupo: 'constructora', Grupo: 'Constructora', item: 'proyecto', items: 'proyectos', Item: 'Proyecto', un: 'una', gActivos: 'Constructoras activas' },
+    movilidad: { clave: 'movilidad', nombre: 'Movilidad', webhook: 'trz-app-movilidad', grupo: 'concesionario', Grupo: 'Concesionario', item: 'vehículo', items: 'vehículos', Item: 'Vehículo', un: 'un', gActivos: 'Concesionarios activos' }
+  };
+  const MK = (() => { let k = new URLSearchParams(location.search).get('m');
+    if (!MERCADOS[k]) { try { k = sessionStorage.getItem('trz_mk'); } catch (e) { k = null; } }
+    return MERCADOS[k] || MERCADOS.inmobiliario; })();
+  try { sessionStorage.setItem('trz_mk', MK.clave); } catch (e) { /* nada */ }
+  const T = t => t.replace(/\{(\w+)\}/g, (_, k) => MK[k] ?? '');
+  function cambiarMercado(k) {
+    if (k === MK.clave) return;
+    if (editando && !confirm('Tiene cambios sin aplicar. ¿Cambiar de marketplace y descartarlos?')) return;
+    location.search = '?m=' + k;
+  }
+  function aplicarMercado() {
+    document.title = 'App de edición · ' + MK.nombre + ' · BlackSip';
+    document.querySelectorAll('#selectorMk button').forEach(b => b.classList.toggle('activo', b.dataset.k === MK.clave));
+    document.querySelectorAll('[data-t]').forEach(e => { e.innerHTML = T(e.dataset.t); });
+    document.querySelectorAll('[data-ph]').forEach(e => { e.placeholder = T(e.dataset.ph); });
+    $('lnkDashboard').href = '../dashboard.html?m=' + MK.clave;
+    $('resultados').innerHTML = '<div class="vacio">' + T('Escriba un nombre o un ID, o elija {un} {grupo}.') + '</div>';
+    $('ficha').innerHTML = '<div class="vacio">' + T('Elija un {item} de la lista para verlo en vivo desde VTEX.') + '</div>';
+  }
+  const fmt = new Intl.NumberFormat('es-CO');
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  let token = null, seleccionado = null;
+
+  /* ---------- Sesión ---------- */
+  function datosToken(t) {
+    try { return JSON.parse(decodeURIComponent(escape(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))))); } catch (e) { return null; }
+  }
+  function iniciarSesion(t) {
+    const d = datosToken(t);
+    if (!d || d.exp * 1000 < Date.now()) return false;
+    token = t;
+    try { sessionStorage.setItem('trz_token', t); } catch (e) { /* sin almacenamiento */ }
+    $('usuario').textContent = d.email || '';
+    $('btnSalir').style.display = '';
+    $('vistaLogin').style.display = 'none';
+    $('vistaApp').style.display = '';
+    cargarGrupos();
+    return true;
+  }
+  function salir() {
+    token = null;
+    try { sessionStorage.removeItem('trz_token'); } catch (e) { /* nada */ }
+    if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
+    location.reload();
+  }
+  function alCargarGoogle() {
+    if (!window.google || !google.accounts) return setTimeout(alCargarGoogle, 300);
+    google.accounts.id.initialize({
+      client_id: CLIENT_ID, hd: 'blacksip.com', auto_select: true, ux_mode: 'popup',
+      callback: r => { if (!iniciarSesion(r.credential)) $('errorLogin').innerHTML = '<div class="error">No se pudo iniciar sesión.</div>'; }
+    });
+    google.accounts.id.renderButton($('botonGoogle'), { theme: 'outline', size: 'large', text: 'signin_with', locale: 'es' });
+  }
+  aplicarMercado();
+  (function () {
+    let t = null; try { t = sessionStorage.getItem('trz_token'); } catch (e) { t = null; }
+    if (!(t && iniciarSesion(t))) alCargarGoogle();
+  })();
+
+  /* ---------- Llamadas ---------- */
+  async function api(cuerpo) {
+    // Directo a n8n de producción (webhook del marketplace elegido): el ID token de Google va en el cuerpo y n8n lo verifica
+    const r = await fetch(N8N + '/webhook/' + MK.webhook, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...cuerpo, token })
+    });
+    let j = null; try { j = await r.json(); } catch (e) { j = null; }
+    if (r.status === 401) { salir(); throw new Error('La sesión venció. Inicie sesión de nuevo.'); }
+    if (!r.ok || !j) throw new Error((j && j.error) || 'Error ' + r.status);
+    if (j.error) throw new Error(j.error);
+    return j;
+  }
+  /* ---------- Bienvenida: saludo, indicadores y "para revisar" (datos de la revisión de anoche) ---------- */
+  let RES = null;
+  const fechaUtc = s => s ? new Date(String(s).replace(' ', 'T') + 'Z') : null;
+  function pintarSaludo() {
+    const d = datosToken(token) || {};
+    const nombre = d.given_name || String(d.email || '').split('@')[0].split('.')[0];
+    const h = Number(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Bogota' }));
+    const parte = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+    $('hola').innerHTML = parte + (nombre ? ', ' + esc(nombre.charAt(0).toUpperCase() + nombre.slice(1)) : '') + ' <span class="mano">👋</span>';
+    $('subSaludo').innerHTML = T('Está editando <b>{nombre}</b>. Busque {un} {item} o use la carga masiva para cambiar varios a la vez.');
+    const k = (et, c) => '<div class="kpi cargando-k" style="--c:' + c + '"><div class="et">' + et + '</div><div class="v">—</div><div class="d">&nbsp;</div></div>';
+    $('kpis').innerHTML = k('Activos hoy', '#9063cd') + k(MK.gActivos, '#59cbe8') + k('Sin actualizar +90 días', '#ff7f41') + k('Editados esta semana', '#00c389');
+  }
+  async function cargarGrupos() {
+    pintarSaludo();
+    try {
+      const r = await fetch(N8N + '/webhook/trz-dashboard-datos?marketplace=' + MK.nombre + '&resumen=0'); const j = await r.json();
+      const prods = j.productos || [];
+      const g = [...new Set(prods.map(p => p.grupo).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      $('listaGrupos').innerHTML = g.map(x => '<option value="' + esc(x) + '">').join('');
+      const ahora = Date.now(), DIA = 86400000;
+      const activos = prods.filter(p => p.activo && Number(p.skus_activos) > 0);
+      const dias = p => { const f = fechaUtc(p.ultima_actualizacion); return f ? Math.floor((ahora - f) / DIA) : null; };
+      // +90 días = con fecha registrada y vieja; "sin registro" = el sistema aún no ha visto un cambio (Movilidad empezó el 19/11/2026)
+      const conDias = activos.map(p => ({ ...p, dias: dias(p) }));
+      const viejos = conDias.filter(p => p.dias !== null && p.dias > 90).sort((a, b) => b.dias - a.dias);
+      const sinRegistro = conDias.filter(p => p.dias === null);
+      const semana = prods.filter(p => { const dd = dias(p); return dd !== null && dd <= 7 && /app web|carga masiva/i.test(p.ultima_origen || ''); });
+      const gruposAct = new Set(activos.map(p => p.grupo).filter(Boolean)).size;
+      RES = { total: prods.length, activos: activos.length, grupos: gruposAct, viejos, sinRegistro, revisar: viejos.concat(sinRegistro), semana: semana.length, fecha: fechaUtc(j.portada && j.portada.datos_utc) };
+      const pct = n => RES.activos ? Math.round(n / RES.activos * 100) + ' % de los activos' : '';
+      const k = (et, c, v, d, clic) => '<div class="kpi' + (clic ? ' clic' : '') + '" style="--c:' + c + '"' + (clic ? ' onclick="' + clic + '"' : '') + '><div class="et">' + et +
+        '</div><div class="v">' + fmt.format(v) + '</div><div class="d">' + d + '</div></div>';
+      $('kpis').innerHTML =
+        k('Activos hoy', '#9063cd', RES.activos, 'de ' + fmt.format(RES.total) + ' ' + MK.items + ' vigilados') +
+        k(MK.gActivos, '#59cbe8', RES.grupos, 'con al menos un ' + MK.item + ' activo') +
+        k('Sin actualizar +90 días', '#ff7f41', viejos.length, (sinRegistro.length ? fmt.format(sinRegistro.length) + ' sin cambios registrados aún' : pct(viejos.length)) + ' · ver lista', "pintarBienvenida()") +
+        k('Editados esta semana', '#00c389', RES.semana, 'desde la app o la carga masiva');
+      if (RES.fecha) $('fechaDatos').innerHTML = 'Datos de la revisión del<br><b>' + RES.fecha.toLocaleString('es-CO', { timeZone: 'America/Bogota', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + '</b>';
+      if (!seleccionado) pintarBienvenida();
+    } catch (e) { $('kpis').innerHTML = ''; /* los indicadores son solo una ayuda */ }
+  }
+  function pintarBienvenida() {
+    if (editando) return;
+    seleccionado = null; document.querySelectorAll('.res').forEach(x => x.classList.remove('sel'));
+    const v = RES ? RES.revisar.slice(0, 8) : [];
+    $('ficha').innerHTML = '<div class="bienvenida">' + (v.length
+      ? '<h3>Para revisar</h3><p class="m">' + T('{Item}s activos que llevan más tiempo sin actualizarse ("Sin registro": el sistema aún no ha visto un cambio). Haga clic para abrir uno.') + '</p>' +
+        '<table class="revisar"><tbody>' + v.map(p => '<tr onclick="abrir(' + Number(p.id) + ')"><td><div>' + esc(p.nombre) + '</div><div class="g">' + Number(p.id) + ' · ' + esc(p.grupo || '—') +
+          '</div></td><td class="dias">' + (p.dias === null ? 'Sin registro' : fmt.format(p.dias) + ' días') + '</td></tr>').join('') + '</tbody></table>'
+      : '<div class="vacio">' + T('Elija un {item} de la lista para verlo en vivo desde VTEX.') + '</div>') +
+      '<div class="atajos"><button onclick="vistaModo(\'masiva\')">📥 Carga masiva por Excel</button>' +
+      '<a class="btn-sec" style="text-decoration:none" href="../dashboard.html?m=' + MK.clave + '">📊 Ver el dashboard</a></div></div>';
+  }
+
+  /* ---------- Búsqueda ---------- */
+  async function buscar() {
+    const q = $('q').value.trim(), grupo = $('grupo').value.trim();
+    if (!q && !grupo) { $('resultados').innerHTML = '<div class="vacio">' + T('Escriba un nombre o un ID, o elija {un} {grupo}.') + '</div>'; return; }
+    $('resultados').innerHTML = '<div class="cargando">Buscando…</div>'; $('conteo').textContent = '';
+    try {
+      const j = await api({ accion: 'buscar', q, grupo });
+      const r = j.resultados || [];
+      if (!r.length) {
+        if (/^\d+$/.test(q)) { $('resultados').innerHTML = '<div class="vacio">No está en el índice. <a href="#" onclick="abrir(' + Number(q) + ');return false">Abrir el ProductId ' + q + ' directamente</a></div>'; return; }
+        $('resultados').innerHTML = '<div class="vacio">' + T('No se encontraron {items}.') + '</div>'; return;
+      }
+      $('resultados').innerHTML = r.map(p => '<div class="res' + (p.id === seleccionado ? ' sel' : '') + '" data-id="' + p.id + '" onclick="abrir(' + p.id + ')">' +
+        '<div class="n" title="' + esc(p.nombre) + '">' + esc(p.nombre) + '</div>' +
+        '<span class="estado ' + (p.activo ? 'si' : 'no') + '">' + (p.activo ? 'Activo' : 'Inactivo') + '</span>' +
+        '<div class="m">' + p.id + ' · ' + esc(p.grupo || '—') + (p.categoria ? ' · ' + esc(p.categoria) : '') + '</div>' +
+        '<div class="m">' + (p.skus != null ? p.skus_activos + '/' + p.skus + ' SKUs' : '') + '</div></div>').join('');
+      $('conteo').textContent = r.length >= (j.limite || 60) ? 'Se muestran los primeros ' + r.length + '. Afine la búsqueda.' : r.length + ' ' + (r.length === 1 ? MK.item : MK.items);
+    } catch (e) { $('resultados').innerHTML = '<div class="error">' + esc(e.message) + '</div>'; }
+  }
+
+  /* ---------- Ficha del producto ---------- */
+  const valor = v => (v === null || v === undefined || String(v).trim() === '') ? '<span class="sin">vacío</span>' : esc(v);
+  const plata = v => v == null ? '—' : '$ ' + fmt.format(v);
+  async function abrir(id) {
+    seleccionado = id;
+    document.querySelectorAll('.res').forEach(x => x.classList.toggle('sel', Number(x.dataset.id) === id));
+    $('ficha').innerHTML = '<div class="cargando">' + T('Leyendo el {item} ') + id + ' en VTEX…</div>';
+    try { pintarFicha(await api({ accion: 'producto', product_id: id })); }
+    catch (e) { $('ficha').innerHTML = '<div class="error">' + esc(e.message) + '</div>'; }
+  }
+  let fichaActual = null, editando = false;
+  const EDITABLES = [['Nombre', 'nombre'], ['Título SEO', 'titulo'], ['Descripción corta', 'descripcion_corta'], ['Meta descripción', 'meta'], ['Palabras clave', 'palabras'], ['Descripción', 'descripcion']];
+  function pintarFicha(j) {
+    fichaActual = j; editando = false;
+    const p = j.producto, specs = j.especificaciones || [], skus = j.skus || [], hist = j.historial || [];
+    const vacias = specs.filter(s => !s.valores.length).length;
+    const hora = new Date(j.leido_en).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    $('ficha').innerHTML =
+      '<div class="ficha-cab"><div><h2>' + esc(p.nombre) + '</h2>' +
+      '<div class="meta">ProductId ' + p.id + ' · ' + esc((MK.clave === 'movilidad' ? p.grupo : p.marca) || p.marca || 'Marca ' + p.brand_id) + ' · <span class="estado ' + (p.activo ? 'si' : 'no') + '">' + (p.activo ? 'Activo' : 'Inactivo') + '</span>' +
+      ' · leído de VTEX a las ' + hora + '</div></div>' +
+      '<div class="enlaces"><button class="btn-sec" id="btnEditar" onclick="editar()">Editar</button><button class="btn-sec" onclick="abrir(' + p.id + ')">Volver a leer</button>' +
+      '<a class="btn-sec" target="_blank" rel="noopener" href="' + esc(j.enlace_admin) + '">Abrir en VTEX ↗</a></div></div>' +
+      '<div class="pestanas">' +
+      '<button class="activo" data-p="datos" onclick="pestana(\'datos\')">Datos</button>' +
+      '<button data-p="specs" onclick="pestana(\'specs\')">Especificaciones<span class="cnt">' + specs.length + (vacias ? ' · ' + vacias + ' vacías' : '') + '</span></button>' +
+      '<button data-p="skus" onclick="pestana(\'skus\')">SKUs<span class="cnt">' + skus.length + '</span></button>' +
+      '<button data-p="hist" onclick="pestana(\'hist\')">Historial<span class="cnt">' + hist.length + '</span></button></div>' +
+
+      '<div class="panel activo" id="p-datos"><div class="datos">' +
+      [['Nombre', p.nombre], ['Título SEO', p.titulo], ['Categoría', p.categoria], ['Fecha de lanzamiento', p.lanzamiento],
+       ['Visible', p.visible ? 'Sí' : 'No'], ['Activo', p.activo ? 'Sí' : 'No'], ['LinkId', p.link_id], ['RefId', p.ref_id],
+       ['Palabras clave', p.palabras], ['Meta descripción', p.meta]].map(([k, v]) => '<div class="k">' + k + '</div><div class="v">' + valor(v) + '</div>').join('') +
+      '<div class="k">Descripción corta</div><div class="v largo">' + valor(p.descripcion_corta) + '</div>' +
+      '<div class="k">Descripción</div><div class="v largo">' + valor(p.descripcion) + '</div></div></div>' +
+
+      '<div class="panel" id="p-specs"><div class="filtro-specs"><label><input type="checkbox" onchange="soloVacias(this.checked)"> Solo vacías</label>' +
+      '<span>' + T('Incluye los campos de la categoría que el {item} todavía no tiene llenos.') + '</span></div>' +
+      '<table class="specs"><thead><tr><th>Especificación</th><th>Valor</th></tr></thead><tbody>' +
+      specs.map(s => '<tr class="' + (s.valores.length ? '' : 'vacia') + '"><td>' + esc(s.nombre) +
+        (s.obligatorio ? '<span class="chip oblig">obligatoria</span>' : '') + (s.grupo ? '<span class="chip grupo">' + esc(s.grupo) + '</span>' : '') + '</td><td>' +
+        (s.valores.length ? esc(s.valores.join(', ')) : '<span class="sin">vacía</span>') + '</td></tr>').join('') + '</tbody></table></div>' +
+
+      '<div class="panel" id="p-skus"><div class="skus">' + (skus.length ? skus.map(s => s.error
+        ? '<div class="sku"><div class="img">—</div><div><h3>SKU ' + s.id + '</h3><div class="error">' + esc(s.error) + '</div></div></div>'
+        : '<div class="sku"><div class="img">' + (s.imagenes[0] ? '<img src="' + esc(s.imagenes[0].url) + '" alt="" loading="lazy">' : 'Sin imagen') + '</div><div>' +
+          '<h3>' + esc(s.nombre) + ' <span class="estado ' + (s.activo ? 'si' : 'no') + '">' + (s.activo ? 'Activo' : 'Inactivo') + '</span></h3>' +
+          '<div class="fila"><span>SkuId <b>' + s.id + '</b></span><span>RefId <b>' + valor(s.ref_id) + '</b></span><span>EAN <b>' + valor(s.ean) + '</b></span>' +
+          '<span>Sellers <b>' + (s.sellers.map(x => esc(x.id)).join(', ') || '—') + '</b></span></div>' +
+          '<div class="precios"><div class="precio">Base<b>' + plata(s.precio && s.precio.base) + '</b></div><div class="precio">Lista<b>' + plata(s.precio && s.precio.lista) +
+          '</b></div><div class="precio">Costo<b>' + plata(s.precio && s.precio.costo) + '</b></div></div>' +
+          (s.specs.length ? '<div class="fila">' + s.specs.map(x => '<span>' + esc(x.nombre) + ': <b>' + esc(x.valores.join(', ')) + '</b></span>').join('') + '</div>' : '') +
+          (s.imagenes.length > 1 ? '<div class="miniaturas">' + s.imagenes.slice(1, 13).map(im => '<img src="' + esc(im.url) + '" alt="" loading="lazy">').join('') + '</div>' : '') +
+          '</div></div>').join('') : '<div class="vacio">' + T('Este {item} no tiene SKUs.') + '</div>') + '</div></div>' +
+
+      '<div class="panel" id="p-hist">' + (hist.length ? '<table class="hist"><thead><tr><th>Fecha</th><th>Entidad</th><th>Campo</th><th>Antes → Ahora</th><th>Origen</th><th>Usuario</th></tr></thead><tbody>' +
+        hist.map(h => '<tr><td>' + esc(fechaLocal(h.fecha)) + '</td><td>' + esc(h.entidad) + (h.sku_id ? ' ' + h.sku_id : '') + '</td><td>' + esc(h.campo) + '</td><td><div class="antes">' +
+          esc(h.antes) + '</div><div>' + esc(h.ahora) + '</div></td><td><span class="origen ' + esc(String(h.origen).split(' ')[0]) + '">' + esc(h.origen) + '</span></td><td>' + esc(h.usuario) + '</td></tr>').join('') +
+        '</tbody></table>' : '<div class="vacio">' + T('Sin cambios registrados para este {item}.') + '</div>') + '</div>';
+  }
+  /* ---------- Edición ---------- */
+  function editar() {
+    if (!fichaActual || editando) return;
+    editando = true;
+    const p = fichaActual.producto;
+    $('btnEditar').disabled = true;
+    // Datos: los campos editables pasan a cajas de texto
+    const datos = document.querySelector('#p-datos .datos');
+    datos.classList.add('editable');
+    datos.innerHTML = EDITABLES.map(([k, c]) => '<div class="k">' + k + '</div><div class="v"><textarea data-campo="' + esc(k) + '" data-antes="' + esc(p[c] ?? '') + '" rows="' +
+      (c === 'descripcion' ? 7 : (c === 'titulo' || c === 'palabras' || c === 'nombre') ? 1 : 3) + '" oninput="marcar(this)">' + esc(p[c] ?? '') + '</textarea></div>').join('') +
+      '<div class="k">Otros campos</div><div class="v sin">Categoría, marca, estado y LinkId no se editan desde aquí.</div>';
+    // Especificaciones: el control depende del tipo de campo en VTEX
+    document.querySelectorAll('.specs tbody tr').forEach((tr, i) => { tr.children[1].innerHTML = controlSpec(fichaActual.especificaciones[i]); });
+    document.querySelector('.specs').classList.add('editable');
+    // SKUs: estado, nombre, RefId, precios y especificaciones de SKU
+    const camposSku = fichaActual.sku_campos || [];
+    document.querySelectorAll('#p-skus .sku').forEach((card, i) => {
+      const s = fichaActual.skus[i]; if (!s || s.error) return;
+      const d = ' data-sku="' + s.id + '"', pr = s.precio || {};
+      const ent = (campo, valor, tipo) => '<input type="' + (tipo || 'text') + '"' + (tipo === 'number' ? ' step="any" min="0" inputmode="decimal"' : '') + d +
+        ' data-campo="' + campo + '" data-antes="' + esc(valor ?? '') + '" value="' + esc(valor ?? '') + '" oninput="marcar(this)">';
+      let h = '<div class="sku-edicion editable"><div class="titulo">Editar SKU ' + s.id + '</div>' +
+        '<div class="k">Estado</div><div><select' + d + ' data-campo="Activo" data-antes="' + (s.activo ? 'Sí' : 'No') + '" onchange="marcar(this)">' +
+        '<option value="Sí"' + (s.activo ? ' selected' : '') + '>Activo</option><option value="No"' + (s.activo ? '' : ' selected') + '>Inactivo</option></select>' +
+        '<span class="tipo-campo">Al activar, VTEX revisa que tenga precio, imagen y stock</span></div>' +
+        '<div class="k">Nombre SKU</div><div>' + ent('Nombre SKU', s.nombre) + '</div>' +
+        '<div class="k">RefId</div><div>' + ent('RefId', s.ref_id) + '</div>' +
+        '<div class="k">Precio base</div><div>' + ent('Precio base', pr.base == null ? '' : String(pr.base), 'number') + '<span class="tipo-campo">Sin puntos de miles. Ej.: 964064622</span></div>' +
+        '<div class="k">Precio lista</div><div>' + ent('Precio lista', pr.lista == null ? '' : String(pr.lista), 'number') + '</div>';
+      for (const f of camposSku) {
+        const actual = (s.specs.find(x => (f.field_id && x.field_id === f.field_id) || x.nombre === f.nombre) || { valores: [] }).valores;
+        h += '<div class="k">' + esc(f.nombre) + '</div><div>' + (f.tipo_id === 7
+          ? esc(actual.join(', ') || '—') + '<span class="tipo-campo">Varias opciones: se edita en el admin de VTEX</span>'
+          : controlSpec({ nombre: f.nombre, valores: actual, tipo_id: f.tipo_id, opciones: f.opciones }, 'Spec SKU: ', d)) + '</div>';
+      }
+      card.insertAdjacentHTML('beforeend', h + '</div>');
+    });
+    const barra = document.createElement('div'); barra.className = 'barra-edicion';
+    barra.innerHTML = '<span class="info" id="infoCambios">Sin cambios</span><button class="btn-sec" onclick="abrir(' + p.id + ')">Cancelar</button>' +
+      '<button class="btn-morado" id="btnRevisar" disabled onclick="revisar()">Revisar y guardar</button>';
+    $('ficha').appendChild(barra);
+  }
+  // Tipos de VTEX: 1 Texto, 2 Texto multilínea, 4 Número, 5 Combo, 6 Radio, 7 CheckBox, 8/9 Texto indexado
+  function controlSpec(s, prefijo = 'Spec: ', extra = '') {
+    const actual = s.valores || [], op = Array.isArray(s.opciones) ? s.opciones : [], t = s.tipo_id;
+    const attr = (extra ? extra + ' ' : '') + 'data-campo="' + esc(prefijo + s.nombre) + '"';
+    if ((t === 5 || t === 6) && op.length) {
+      const fuera = actual.filter(v => !op.includes(v));
+      return '<select ' + attr + ' data-antes="' + esc(actual.join('\n')) + '" onchange="marcar(this)">' +
+        (actual.length ? '' : '<option value="" selected>— Elegir —</option>') +
+        fuera.map(v => '<option value="' + esc(v) + '" selected>' + esc(v) + ' (no está en la lista)</option>').join('') +
+        op.map(o => '<option value="' + esc(o) + '"' + (actual[0] === o && !fuera.length ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select>' +
+        '<span class="tipo-campo">Lista: se elige una opción</span>';
+    }
+    if (t === 7 && op.length) {
+      const todas = [...op, ...actual.filter(v => !op.includes(v))];
+      return '<details class="multi"><summary>' + resumenMulti(actual) + '</summary><div class="ops">' +
+        todas.map(o => '<label><input type="checkbox" value="' + esc(o) + '"' + (actual.includes(o) ? ' checked' : '') + ' onchange="multi(this)"> ' + esc(o) + '</label>').join('') +
+        '</div></details><input type="hidden" ' + attr + ' data-conjunto="1" data-antes="' + esc(actual.join('\n')) + '" value="' + esc(actual.join('\n')) + '">' +
+        '<span class="tipo-campo">Lista: se pueden marcar varias opciones</span>';
+    }
+    if (t === 1 || t === 4 || t === 8)
+      return '<input type="text" ' + attr + ' data-antes="' + esc(actual.join('\n')) + '" value="' + esc(actual.join(' ')) + '"' +
+        (t === 4 ? ' inputmode="decimal" placeholder="Solo números"' : '') + ' oninput="marcar(this)">';
+    if (t === 2 || t === 9)
+      return '<textarea ' + attr + ' data-antes="' + esc(actual.join('\n')) + '" rows="3" oninput="marcar(this)">' + esc(actual.join('\n')) + '</textarea>';
+    return '<textarea ' + attr + ' data-antes="' + esc(actual.join('\n')) + '" rows="' + Math.max(1, actual.length) +
+      '" placeholder="Un valor por línea" oninput="marcar(this)">' + esc(actual.join('\n')) + '</textarea>';
+  }
+  function resumenMulti(v) { return v.length ? esc(v.join(', ')) : '<span class="sin">— Elegir —</span>'; }
+  function multi(cb) {
+    const det = cb.closest('details'), oculto = det.nextElementSibling;
+    const v = [...det.querySelectorAll('input[type=checkbox]:checked')].map(x => x.value);
+    oculto.value = v.join('\n'); det.querySelector('summary').innerHTML = resumenMulti(v); marcar(oculto);
+  }
+  // Cerrar las listas de casillas al hacer clic afuera
+  document.addEventListener('click', e => { document.querySelectorAll('details.multi[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }); });
+  function distinto(t) {
+    const a = t.dataset.antes.trim(), n = t.value.replace(/\r\n/g, '\n').trim();
+    if (t.dataset.conjunto) { const o = x => x.split('\n').map(y => y.trim()).filter(Boolean).sort().join('\n'); return o(a) !== o(n); }
+    return a !== n;
+  }
+  function cambiosPendientes() {
+    return [...document.querySelectorAll('#ficha [data-campo]')].filter(t => !(t.tagName === 'SELECT' && t.value === '' && !t.dataset.antes) && distinto(t))
+      .map(t => ({ campo: t.dataset.campo, antes: t.dataset.antes, nuevo: t.value, ...(t.dataset.sku ? { sku_id: Number(t.dataset.sku) } : {}) }));
+  }
+  function marcar(t) {
+    (t.type === 'hidden' ? t.previousElementSibling : t).classList.toggle('cambiado', distinto(t));
+    const n = cambiosPendientes().length;
+    $('infoCambios').textContent = n ? n + (n === 1 ? ' cambio sin guardar' : ' cambios sin guardar') : 'Sin cambios';
+    $('btnRevisar').disabled = !n;
+  }
+  function revisar() {
+    const c = cambiosPendientes(); if (!c.length) return;
+    const corto = s => { s = String(s || ''); return s.length > 120 ? esc(s.slice(0, 120)) + '…' : (s ? esc(s) : '<span class="sin">vacío</span>'); };
+    const m = document.createElement('div'); m.className = 'modal-fondo'; m.id = 'modal';
+    m.innerHTML = '<div class="modal"><h3>Confirmar cambios en VTEX</h3><div>ProductId ' + fichaActual.producto.id + ' · ' + esc(fichaActual.producto.nombre) + '</div>' +
+      '<div class="adv">Se aplicarán en <b>VTEX (producción)</b>. Antes de escribir se vuelve a leer VTEX: si alguien cambió algo mientras usted editaba, ese campo <b>no se sobrescribe</b>.</div>' +
+      '<table><tr><th>Campo</th><th>Antes</th><th>Nuevo</th></tr>' + c.map(x => '<tr><td>' + (x.sku_id ? 'SKU ' + x.sku_id + ' · ' : '') + esc(x.campo) + '</td><td>' + corto(x.antes) + '</td><td>' + corto(x.nuevo) + alertaPrecio(x) + '</td></tr>').join('') + '</table>' +
+      '<div class="acc"><button class="btn-sec" onclick="cerrarModal()">Volver</button><button class="btn-morado" id="btnAplicar" onclick="guardar()">Aplicar ' + c.length + (c.length === 1 ? ' cambio' : ' cambios') + '</button></div></div>';
+    document.body.appendChild(m);
+  }
+  function alertaPrecio(x) {
+    if (!String(x.campo).startsWith('Precio')) return '';
+    const a = Number(x.antes), n = Number(x.nuevo); if (!a || !n) return '';
+    const pct = Math.round((n - a) / a * 100); return Math.abs(pct) > 30 ? '<span class="alerta">⚠ ' + (pct > 0 ? '+' : '') + pct + ' %</span>' : '';
+  }
+  function cerrarModal() { const m = $('modal'); if (m) m.remove(); }
+  async function guardar() {
+    const c = cambiosPendientes(); const id = fichaActual.producto.id;
+    $('btnAplicar').disabled = true; $('btnAplicar').textContent = 'Aplicando…';
+    try {
+      const prod = c.filter(x => !x.sku_id), skus = c.filter(x => x.sku_id), lista = [];
+      if (prod.length) { const r = await api({ accion: 'guardar', product_id: id, cambios: prod }); lista.push(...(r.resultados || [])); }
+      if (skus.length) {
+        try { const r = await api({ accion: 'guardar_sku', product_id: id, cambios: skus }); lista.push(...(r.resultados || [])); }
+        catch (e) { if (!prod.length) throw e; lista.push({ campo: 'SKUs', resultado: 'ERROR', detalle: e.message }); }
+      }
+      const clase = x => x === 'OK' ? 'res-ok' : x === 'CONFLICTO' ? 'res-conflicto' : 'res-error';
+      document.querySelector('#modal .modal').innerHTML = '<h3>Resultado</h3><table><tr><th>Campo</th><th>Resultado</th><th>Detalle</th></tr>' +
+        lista.map(x => '<tr><td>' + esc(x.campo) + '</td><td class="' + clase(x.resultado) + '">' + esc(x.resultado) + '</td><td>' + esc(x.detalle) + '</td></tr>').join('') +
+        '</table><div class="acc"><button class="btn-morado" onclick="cerrarModal(); abrir(' + id + ')">Listo (volver a leer)</button></div>';
+    } catch (e) {
+      document.querySelector('#modal .modal').innerHTML = '<h3>No se pudo guardar</h3><div class="error">' + esc(e.message) + '</div>' +
+        '<div class="acc"><button class="btn-sec" onclick="cerrarModal()">Cerrar</button></div>';
+    }
+  }
+
+  function fechaLocal(utc) { if (!utc) return ''; const d = new Date(String(utc).replace(' ', 'T') + 'Z'); return d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }); }
+  function pestana(id) {
+    document.querySelectorAll('.pestanas button').forEach(b => b.classList.toggle('activo', b.dataset.p === id));
+    document.querySelectorAll('#ficha .panel').forEach(x => x.classList.toggle('activo', x.id === 'p-' + id));
+  }
+  function soloVacias(si) { document.querySelectorAll('.specs tbody tr').forEach(tr => { tr.style.display = si && !tr.classList.contains('vacia') ? 'none' : ''; }); }
+</script>
+</body>
+</html>
