@@ -374,7 +374,7 @@
       const k = (et, c, v, d, clic) => '<div class="kpi' + (clic ? ' clic' : '') + '" style="--c:' + c + '"' + (clic ? ' onclick="' + clic + '"' : '') + '><div class="et">' + et +
         '</div><div class="v">' + fmt.format(v) + '</div><div class="d">' + d + '</div></div>';
       $('kpis').innerHTML =
-        k('Activos hoy', '#9063cd', RES.activos, 'de ' + fmt.format(RES.total) + ' ' + MK.items + ' vigilados') +
+        k('Activos hoy', '#9063cd', RES.activos, 'según la revisión de anoche') +
         k(MK.gActivos, '#59cbe8', RES.grupos, 'con al menos un ' + MK.item + ' activo') +
         k('Sin actualizar +90 días', '#ff7f41', viejos.length, (sinRegistro.length ? fmt.format(sinRegistro.length) + ' sin cambios registrados aún' : pct(viejos.length)) + ' · ver lista', "pintarBienvenida()") +
         k('Editados esta semana', '#00c389', RES.semana, 'desde la app o la carga masiva');
