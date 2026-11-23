@@ -363,18 +363,20 @@
       const ahora = Date.now(), DIA = 86400000;
       const activos = prods.filter(p => p.activo && Number(p.skus_activos) > 0);
       const dias = p => { const f = fechaUtc(p.ultima_actualizacion); return f ? Math.floor((ahora - f) / DIA) : null; };
-      const viejos = activos.map(p => ({ ...p, dias: dias(p) })).filter(p => p.dias === null || p.dias > 90)
-        .sort((a, b) => (b.dias ?? 99999) - (a.dias ?? 99999));
+      // +90 días = con fecha registrada y vieja; "sin registro" = el sistema aún no ha visto un cambio (Movilidad empezó el 19/11/2026)
+      const conDias = activos.map(p => ({ ...p, dias: dias(p) }));
+      const viejos = conDias.filter(p => p.dias !== null && p.dias > 90).sort((a, b) => b.dias - a.dias);
+      const sinRegistro = conDias.filter(p => p.dias === null);
       const semana = prods.filter(p => { const dd = dias(p); return dd !== null && dd <= 7 && /app web|carga masiva/i.test(p.ultima_origen || ''); });
       const gruposAct = new Set(activos.map(p => p.grupo).filter(Boolean)).size;
-      RES = { total: prods.length, activos: activos.length, grupos: gruposAct, viejos, semana: semana.length, fecha: fechaUtc(j.portada && j.portada.datos_utc) };
+      RES = { total: prods.length, activos: activos.length, grupos: gruposAct, viejos, sinRegistro, revisar: viejos.concat(sinRegistro), semana: semana.length, fecha: fechaUtc(j.portada && j.portada.datos_utc) };
       const pct = n => RES.activos ? Math.round(n / RES.activos * 100) + ' % de los activos' : '';
       const k = (et, c, v, d, clic) => '<div class="kpi' + (clic ? ' clic' : '') + '" style="--c:' + c + '"' + (clic ? ' onclick="' + clic + '"' : '') + '><div class="et">' + et +
         '</div><div class="v">' + fmt.format(v) + '</div><div class="d">' + d + '</div></div>';
       $('kpis').innerHTML =
         k('Activos hoy', '#9063cd', RES.activos, 'de ' + fmt.format(RES.total) + ' ' + MK.items + ' vigilados') +
         k(MK.gActivos, '#59cbe8', RES.grupos, 'con al menos un ' + MK.item + ' activo') +
-        k('Sin actualizar +90 días', '#ff7f41', viejos.length, pct(viejos.length) + ' · ver lista', "pintarBienvenida()") +
+        k('Sin actualizar +90 días', '#ff7f41', viejos.length, (sinRegistro.length ? fmt.format(sinRegistro.length) + ' sin cambios registrados aún' : pct(viejos.length)) + ' · ver lista', "pintarBienvenida()") +
         k('Editados esta semana', '#00c389', RES.semana, 'desde la app o la carga masiva');
       if (RES.fecha) $('fechaDatos').innerHTML = 'Datos de la revisión del<br><b>' + RES.fecha.toLocaleString('es-CO', { timeZone: 'America/Bogota', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + '</b>';
       if (!seleccionado) pintarBienvenida();
@@ -383,9 +385,9 @@
   function pintarBienvenida() {
     if (editando) return;
     seleccionado = null; document.querySelectorAll('.res').forEach(x => x.classList.remove('sel'));
-    const v = RES ? RES.viejos.slice(0, 8) : [];
+    const v = RES ? RES.revisar.slice(0, 8) : [];
     $('ficha').innerHTML = '<div class="bienvenida">' + (v.length
-      ? '<h3>Para revisar</h3><p class="m">' + T('{Item}s activos que llevan más tiempo sin actualizarse. Haga clic para abrir uno.') + '</p>' +
+      ? '<h3>Para revisar</h3><p class="m">' + T('{Item}s activos que llevan más tiempo sin actualizarse ("Sin registro": el sistema aún no ha visto un cambio). Haga clic para abrir uno.') + '</p>' +
         '<table class="revisar"><tbody>' + v.map(p => '<tr onclick="abrir(' + Number(p.id) + ')"><td><div>' + esc(p.nombre) + '</div><div class="g">' + Number(p.id) + ' · ' + esc(p.grupo || '—') +
           '</div></td><td class="dias">' + (p.dias === null ? 'Sin registro' : fmt.format(p.dias) + ' días') + '</td></tr>').join('') + '</tbody></table>'
       : '<div class="vacio">' + T('Elija un {item} de la lista para verlo en vivo desde VTEX.') + '</div>') +
@@ -502,8 +504,7 @@
         '<span class="tipo-campo">Al activar, VTEX revisa que tenga precio, imagen y stock</span></div>' +
         '<div class="k">Nombre SKU</div><div>' + ent('Nombre SKU', s.nombre) + '</div>' +
         '<div class="k">RefId</div><div>' + ent('RefId', s.ref_id) + '</div>' +
-        '<div class="k">Precio base</div><div>' + ent('Precio base', pr.base == null ? '' : String(pr.base), 'number') + '<span class="tipo-campo">Sin puntos de miles. Ej.: 964064622</span></div>' +
-        '<div class="k">Precio lista</div><div>' + ent('Precio lista', pr.lista == null ? '' : String(pr.lista), 'number') + '</div>';
+        '<div class="k">Precio</div><div>' + ent('Precio', pr.base == null ? '' : String(pr.base), 'number') + '<span class="tipo-campo">Se aplica igual a costo, base y lista. Sin puntos de miles. Ej.: 964064622</span></div>';
       for (const f of camposSku) {
         const actual = (s.specs.find(x => (f.field_id && x.field_id === f.field_id) || x.nombre === f.nombre) || { valores: [] }).valores;
         h += '<div class="k">' + esc(f.nombre) + '</div><div>' + (f.tipo_id === 7

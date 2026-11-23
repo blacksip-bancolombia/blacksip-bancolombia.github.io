@@ -7,7 +7,7 @@
 const M = { cambios: [], archivo: '', aplicando: false };
 const SEP = '; ';                                      // separador de varios valores en una celda
 const P_FIJAS = [['Nombre', 'nombre'], ['Título SEO', 'titulo'], ['Descripción', 'descripcion'], ['Descripción corta', 'descripcion_corta'], ['Meta descripción', 'meta'], ['Palabras clave', 'palabras']];
-const S_FIJAS = ['Activo', 'Nombre SKU', 'RefId', 'Precio base', 'Precio lista'];
+const S_FIJAS = ['Activo', 'Nombre SKU', 'RefId', 'Precio'];          // Precio = costo, base y lista con el mismo valor
 const LISTA_UNA = [5, 6], LISTA_VARIAS = [7], MULTILINEA = [2, 9];
 const txt = v => String(v ?? '').replace(/\r\n/g, '\n').trim();
 const normM = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -82,12 +82,11 @@ async function armarExcel(fichas) {
     for (const s of f.skus || []) {
       if (s.error) continue;
       const pr = s.precio || {};
-      const fs = [s.id, p.id, p.nombre || '', s.activo ? 'Sí' : 'No', txt(s.nombre), txt(s.ref_id), pr.base ?? '', pr.lista ?? ''];
+      const fs = [s.id, p.id, p.nombre || '', s.activo ? 'Sí' : 'No', txt(s.nombre), txt(s.ref_id), pr.base ?? ''];
       original.push(['SKUs', s.id, '__fila', '1']); original.push(['SKUs', s.id, 'Activo', s.activo ? 'Sí' : 'No']);
       if (txt(s.nombre)) original.push(['SKUs', s.id, 'Nombre SKU', txt(s.nombre)]);
       if (txt(s.ref_id)) original.push(['SKUs', s.id, 'RefId', txt(s.ref_id)]);
-      if (pr.base != null) original.push(['SKUs', s.id, 'Precio base', String(pr.base)]);
-      if (pr.lista != null) original.push(['SKUs', s.id, 'Precio lista', String(pr.lista)]);
+      if (pr.base != null) original.push(['SKUs', s.id, 'Precio', String(pr.base)]);
       for (const [nombre, t] of specS) {
         const x = (s.specs || []).find(y => y.nombre === nombre); const v = x ? celda(t.tipo_id, x.valores || []) : '';
         fs.push(v); if (v) original.push(['SKUs', s.id, nombre, v]);
@@ -117,7 +116,7 @@ async function armarExcel(fichas) {
     ['1. Edite solo las columnas blancas. Las grises (ProductId, SkuId, ' + MK.Item + ', ' + MK.Grupo + ') son de referencia: el nombre se cambia en la columna Nombre.'],
     ['2. No cambie el orden ni el nombre de las columnas, y no borre las hojas ocultas.'],
     ['3. Campos de lista: elija de la flecha desplegable. Varias opciones en una celda: sepárelas con punto y coma (;).'],
-    ['4. Activo: Sí o No. Precios: solo números, sin puntos de miles (ej. 964064622).'],
+    ['4. Activo: Sí o No. Precio: solo números, sin puntos de miles (ej. 964064622). Se aplica igual a costo, base y lista en VTEX.'],
     ['5. Celdas vacías que tenían valor no se borran en VTEX (vaciar no está soportado).'],
     ['6. Suba el archivo en la app (Carga masiva → Subir). Verá cada cambio antes de aplicarlo.'],
     ['7. Si alguien cambió algo en VTEX después de esta descarga, ese campo sale como CONFLICTO y no se sobrescribe.'],
