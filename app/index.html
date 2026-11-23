@@ -5,7 +5,7 @@
   <meta name="google" content="notranslate">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <title>App de edición · Inmobiliario · BlackSip</title>
+  <title>App de edición · BlackSip</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -155,6 +155,33 @@
     .modal td, .modal th { text-align: left; padding: 7px 6px; border-bottom: 1px solid #F0EEED; vertical-align: top; }
     .modal .acc { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
     .res-ok { color: #00654A; font-weight: 500; } .res-conflicto { color: #8A6A00; font-weight: 500; } .res-error { color: #B23A0E; font-weight: 500; }
+    .selector-mk { display: inline-flex; background: rgba(255,255,255,.12); border-radius: 8px; padding: 3px; margin-left: 14px; gap: 2px; }
+    .selector-mk button { border: 0; background: transparent; color: #fff; font: 500 13px Roboto, sans-serif; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+    .selector-mk button.activo { background: var(--amarillo); color: var(--negro); }
+    .saludo { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 4px 0 14px; }
+    .saludo h1 { font-family: Quicksand, sans-serif; font-weight: 700; font-size: 26px; margin: 0; color: var(--negro); }
+    .saludo h1 .mano { display: inline-block; transform-origin: 70% 70%; animation: saludar 1.6s ease 1; }
+    @keyframes saludar { 0%,60%,100% { transform: rotate(0) } 15%,45% { transform: rotate(14deg) } 30% { transform: rotate(-8deg) } }
+    .saludo .sub { color: var(--texto2); font-size: 13.5px; margin-top: 4px; }
+    .saludo .fecha-datos { color: var(--texto3); font-size: 12px; text-align: right; }
+    .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .kpi { background: #fff; border: 1px solid var(--gris2); border-top: 4px solid var(--c); padding: 14px 16px 12px; border-radius: 2px; }
+    .kpi.clic { cursor: pointer; } .kpi.clic:hover { box-shadow: 0 2px 10px rgba(44,42,41,.08); }
+    .kpi .et { font-size: 12px; color: var(--texto2); text-transform: uppercase; letter-spacing: .04em; }
+    .kpi .v { font-family: Quicksand, sans-serif; font-weight: 700; font-size: 30px; line-height: 1.15; margin-top: 4px; color: var(--negro); }
+    .kpi .d { font-size: 12px; color: var(--texto3); margin-top: 2px; }
+    .kpi.cargando-k .v { color: var(--gris2); }
+    .bienvenida h3 { margin: 0 0 4px; font-family: Quicksand, sans-serif; }
+    .bienvenida .m { color: var(--texto2); font-size: 13px; margin: 0 0 12px; }
+    .revisar { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .revisar td { padding: 9px 6px; border-bottom: 1px solid #F0EEED; }
+    .revisar tr { cursor: pointer; } .revisar tr:hover td { background: var(--gris); }
+    .revisar .dias { text-align: right; white-space: nowrap; font-weight: 500; color: #B23A0E; }
+    .revisar .g { color: var(--texto3); font-size: 12px; }
+    .atajos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .atajos button { background: var(--gris); border: 1px solid var(--gris2); padding: 8px 12px; font: inherit; font-size: 12.5px; cursor: pointer; border-radius: 2px; }
+    .atajos button:hover { border-color: var(--negro); }
+    @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     .pie { color: var(--texto3); font-size: 11.5px; margin-top: 24px; display: flex; justify-content: space-between; }
   </style>
 </head>
@@ -162,11 +189,11 @@
   <header class="cabecera">
     <img src="../img/blacksip-blanco.png" alt="BlackSip">
     <span class="modulo">App de edición</span>
-    <span class="modulo" style="border:0;padding:0">Inmobiliario</span>
+    <span class="selector-mk" id="selectorMk"><button data-k="inmobiliario" onclick="cambiarMercado('inmobiliario')">Inmobiliario</button><button data-k="movilidad" onclick="cambiarMercado('movilidad')">Movilidad</button></span>
     <div class="der">
       <span id="usuario"></span>
       <button class="btn-claro" id="btnSalir" style="display:none" onclick="salir()">Salir</button>
-      <a class="btn-claro" href="../dashboard.html?m=inmobiliario">Dashboard</a>
+      <a class="btn-claro" id="lnkDashboard" href="../dashboard.html?m=inmobiliario">Dashboard</a>
     </div>
   </header>
   <div class="acento"></div>
@@ -182,14 +209,16 @@
 
     <!-- App -->
     <section id="vistaApp" style="display:none">
+      <div class="saludo"><div><h1 id="hola">Hola <span class="mano">👋</span></h1><div class="sub" id="subSaludo"></div></div><div class="fecha-datos" id="fechaDatos"></div></div>
+      <div class="kpis" id="kpis"></div>
       <div class="aviso-lectura">Los cambios se aplican <b>directamente en VTEX (producción)</b> y quedan en el historial con su correo. Revise bien antes de aplicar.</div>
-      <div class="modos"><button data-m="uno" class="activo" onclick="vistaModo('uno')">Editar un proyecto</button><button data-m="masiva" onclick="vistaModo('masiva')">Carga masiva (Excel)</button></div>
+      <div class="modos"><button data-m="uno" class="activo" onclick="vistaModo('uno')" data-t="Editar un {item}">Editar un proyecto</button><button data-m="masiva" onclick="vistaModo('masiva')">Carga masiva (Excel)</button></div>
       <div id="vistaMasiva" style="display:none">
         <div class="pasos-m">
           <div class="tarjeta">
             <h3><span class="num">1</span> Descargar el Excel</h3>
-            <p class="m">Se lee cada proyecto <b>en vivo</b> desde VTEX (tarda unos segundos por proyecto).</p>
-            <input id="mGrupo" list="listaGrupos" placeholder="Constructora" autocomplete="off">
+            <p class="m" data-t="Se lee cada {item} &lt;b&gt;en vivo&lt;/b&gt; desde VTEX (tarda unos segundos por {item}).">Se lee cada proyecto <b>en vivo</b> desde VTEX (tarda unos segundos por proyecto).</p>
+            <input id="mGrupo" list="listaGrupos" placeholder="Constructora" data-ph="{Grupo}" autocomplete="off">
             <div class="o">o</div>
             <textarea id="mIds" rows="2" placeholder="ProductIds separados por coma o espacio (máx. 300)"></textarea>
             <button class="btn" id="mBtnDescargar" onclick="descargarExcel()">Descargar Excel</button>
@@ -211,17 +240,17 @@
       </div>
       <div class="layout">
         <div class="tarjeta busqueda">
-          <h3>Buscar proyecto</h3>
+          <h3 data-t="Buscar {item}">Buscar proyecto</h3>
           <form class="campos" onsubmit="buscar(); return false;">
             <input id="q" placeholder="Nombre, ProductId o SkuId" autocomplete="off">
-            <input id="grupo" list="listaGrupos" placeholder="Constructora (todas)" autocomplete="off">
+            <input id="grupo" list="listaGrupos" placeholder="Constructora (todas)" data-ph="{Grupo} (todos)" autocomplete="off">
             <datalist id="listaGrupos"></datalist>
             <button class="btn" type="submit">Buscar</button>
           </form>
-          <div id="resultados" class="resultados"><div class="vacio">Escriba un nombre o un ID, o elija una constructora.</div></div>
+          <div id="resultados" class="resultados"></div>
           <div class="conteo" id="conteo"></div>
         </div>
-        <div class="tarjeta" id="ficha"><div class="vacio">Elija un proyecto de la lista para verlo en vivo desde VTEX.</div></div>
+        <div class="tarjeta" id="ficha"></div>
       </div>
     </section>
 
@@ -233,6 +262,31 @@
 <script src="masiva.js"></script>
 <script>
   const CLIENT_ID = '337410357638-1k3g7nsofecsk14j7pccuildi6ein735.apps.googleusercontent.com';
+  const N8N = 'https://bic.blacksip.com';
+  /* ---------- Marketplace: cada uno tiene su propio webhook en su flujo de n8n ---------- */
+  const MERCADOS = {
+    inmobiliario: { clave: 'inmobiliario', nombre: 'Inmobiliario', webhook: 'trz-app', grupo: 'constructora', Grupo: 'Constructora', item: 'proyecto', items: 'proyectos', Item: 'Proyecto', un: 'una', gActivos: 'Constructoras activas' },
+    movilidad: { clave: 'movilidad', nombre: 'Movilidad', webhook: 'trz-app-movilidad', grupo: 'concesionario', Grupo: 'Concesionario', item: 'vehículo', items: 'vehículos', Item: 'Vehículo', un: 'un', gActivos: 'Concesionarios activos' }
+  };
+  const MK = (() => { let k = new URLSearchParams(location.search).get('m');
+    if (!MERCADOS[k]) { try { k = sessionStorage.getItem('trz_mk'); } catch (e) { k = null; } }
+    return MERCADOS[k] || MERCADOS.inmobiliario; })();
+  try { sessionStorage.setItem('trz_mk', MK.clave); } catch (e) { /* nada */ }
+  const T = t => t.replace(/\{(\w+)\}/g, (_, k) => MK[k] ?? '');
+  function cambiarMercado(k) {
+    if (k === MK.clave) return;
+    if (editando && !confirm('Tiene cambios sin aplicar. ¿Cambiar de marketplace y descartarlos?')) return;
+    location.search = '?m=' + k;
+  }
+  function aplicarMercado() {
+    document.title = 'App de edición · ' + MK.nombre + ' · BlackSip';
+    document.querySelectorAll('#selectorMk button').forEach(b => b.classList.toggle('activo', b.dataset.k === MK.clave));
+    document.querySelectorAll('[data-t]').forEach(e => { e.innerHTML = T(e.dataset.t); });
+    document.querySelectorAll('[data-ph]').forEach(e => { e.placeholder = T(e.dataset.ph); });
+    $('lnkDashboard').href = '../dashboard.html?m=' + MK.clave;
+    $('resultados').innerHTML = '<div class="vacio">' + T('Escriba un nombre o un ID, o elija {un} {grupo}.') + '</div>';
+    $('ficha').innerHTML = '<div class="vacio">' + T('Elija un {item} de la lista para verlo en vivo desde VTEX.') + '</div>';
+  }
   const fmt = new Intl.NumberFormat('es-CO');
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -268,6 +322,7 @@
     });
     google.accounts.id.renderButton($('botonGoogle'), { theme: 'outline', size: 'large', text: 'signin_with', locale: 'es' });
   }
+  aplicarMercado();
   (function () {
     let t = null; try { t = sessionStorage.getItem('trz_token'); } catch (e) { t = null; }
     if (!(t && iniciarSesion(t))) alCargarGoogle();
@@ -275,8 +330,8 @@
 
   /* ---------- Llamadas ---------- */
   async function api(cuerpo) {
-    // Directo a n8n de producción: el ID token de Google va en el cuerpo y n8n lo verifica
-    const r = await fetch('https://bic.blacksip.com/webhook/trz-app', {
+    // Directo a n8n de producción (webhook del marketplace elegido): el ID token de Google va en el cuerpo y n8n lo verifica
+    const r = await fetch(N8N + '/webhook/' + MK.webhook, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...cuerpo, token })
     });
     let j = null; try { j = await r.json(); } catch (e) { j = null; }
@@ -285,32 +340,77 @@
     if (j.error) throw new Error(j.error);
     return j;
   }
+  /* ---------- Bienvenida: saludo, indicadores y "para revisar" (datos de la revisión de anoche) ---------- */
+  let RES = null;
+  const fechaUtc = s => s ? new Date(String(s).replace(' ', 'T') + 'Z') : null;
+  function pintarSaludo() {
+    const d = datosToken(token) || {};
+    const nombre = d.given_name || String(d.email || '').split('@')[0].split('.')[0];
+    const h = Number(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Bogota' }));
+    const parte = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+    $('hola').innerHTML = parte + (nombre ? ', ' + esc(nombre.charAt(0).toUpperCase() + nombre.slice(1)) : '') + ' <span class="mano">👋</span>';
+    $('subSaludo').innerHTML = T('Está editando <b>{nombre}</b>. Busque {un} {item} o use la carga masiva para cambiar varios a la vez.');
+    const k = (et, c) => '<div class="kpi cargando-k" style="--c:' + c + '"><div class="et">' + et + '</div><div class="v">—</div><div class="d">&nbsp;</div></div>';
+    $('kpis').innerHTML = k('Activos hoy', '#9063cd') + k(MK.gActivos, '#59cbe8') + k('Sin actualizar +90 días', '#ff7f41') + k('Editados esta semana', '#00c389');
+  }
   async function cargarGrupos() {
+    pintarSaludo();
     try {
-      const r = await fetch('https://bic.blacksip.com/webhook/trz-dashboard-datos?marketplace=Inmobiliario&resumen=0'); const j = await r.json();
-      const g = [...new Set((j.productos || []).map(p => p.grupo).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      const r = await fetch(N8N + '/webhook/trz-dashboard-datos?marketplace=' + MK.nombre + '&resumen=0'); const j = await r.json();
+      const prods = j.productos || [];
+      const g = [...new Set(prods.map(p => p.grupo).filter(Boolean))].sort((a, b) => a.localeCompare(b));
       $('listaGrupos').innerHTML = g.map(x => '<option value="' + esc(x) + '">').join('');
-    } catch (e) { /* la lista es solo una ayuda */ }
+      const ahora = Date.now(), DIA = 86400000;
+      const activos = prods.filter(p => p.activo && Number(p.skus_activos) > 0);
+      const dias = p => { const f = fechaUtc(p.ultima_actualizacion); return f ? Math.floor((ahora - f) / DIA) : null; };
+      const viejos = activos.map(p => ({ ...p, dias: dias(p) })).filter(p => p.dias === null || p.dias > 90)
+        .sort((a, b) => (b.dias ?? 99999) - (a.dias ?? 99999));
+      const semana = prods.filter(p => { const dd = dias(p); return dd !== null && dd <= 7 && /app web|carga masiva/i.test(p.ultima_origen || ''); });
+      const gruposAct = new Set(activos.map(p => p.grupo).filter(Boolean)).size;
+      RES = { total: prods.length, activos: activos.length, grupos: gruposAct, viejos, semana: semana.length, fecha: fechaUtc(j.portada && j.portada.datos_utc) };
+      const pct = n => RES.activos ? Math.round(n / RES.activos * 100) + ' % de los activos' : '';
+      const k = (et, c, v, d, clic) => '<div class="kpi' + (clic ? ' clic' : '') + '" style="--c:' + c + '"' + (clic ? ' onclick="' + clic + '"' : '') + '><div class="et">' + et +
+        '</div><div class="v">' + fmt.format(v) + '</div><div class="d">' + d + '</div></div>';
+      $('kpis').innerHTML =
+        k('Activos hoy', '#9063cd', RES.activos, 'de ' + fmt.format(RES.total) + ' ' + MK.items + ' vigilados') +
+        k(MK.gActivos, '#59cbe8', RES.grupos, 'con al menos un ' + MK.item + ' activo') +
+        k('Sin actualizar +90 días', '#ff7f41', viejos.length, pct(viejos.length) + ' · ver lista', "pintarBienvenida()") +
+        k('Editados esta semana', '#00c389', RES.semana, 'desde la app o la carga masiva');
+      if (RES.fecha) $('fechaDatos').innerHTML = 'Datos de la revisión del<br><b>' + RES.fecha.toLocaleString('es-CO', { timeZone: 'America/Bogota', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + '</b>';
+      if (!seleccionado) pintarBienvenida();
+    } catch (e) { $('kpis').innerHTML = ''; /* los indicadores son solo una ayuda */ }
+  }
+  function pintarBienvenida() {
+    if (editando) return;
+    seleccionado = null; document.querySelectorAll('.res').forEach(x => x.classList.remove('sel'));
+    const v = RES ? RES.viejos.slice(0, 8) : [];
+    $('ficha').innerHTML = '<div class="bienvenida">' + (v.length
+      ? '<h3>Para revisar</h3><p class="m">' + T('{Item}s activos que llevan más tiempo sin actualizarse. Haga clic para abrir uno.') + '</p>' +
+        '<table class="revisar"><tbody>' + v.map(p => '<tr onclick="abrir(' + Number(p.id) + ')"><td><div>' + esc(p.nombre) + '</div><div class="g">' + Number(p.id) + ' · ' + esc(p.grupo || '—') +
+          '</div></td><td class="dias">' + (p.dias === null ? 'Sin registro' : fmt.format(p.dias) + ' días') + '</td></tr>').join('') + '</tbody></table>'
+      : '<div class="vacio">' + T('Elija un {item} de la lista para verlo en vivo desde VTEX.') + '</div>') +
+      '<div class="atajos"><button onclick="vistaModo(\'masiva\')">📥 Carga masiva por Excel</button>' +
+      '<a class="btn-sec" style="text-decoration:none" href="../dashboard.html?m=' + MK.clave + '">📊 Ver el dashboard</a></div></div>';
   }
 
   /* ---------- Búsqueda ---------- */
   async function buscar() {
     const q = $('q').value.trim(), grupo = $('grupo').value.trim();
-    if (!q && !grupo) { $('resultados').innerHTML = '<div class="vacio">Escriba un nombre o un ID, o elija una constructora.</div>'; return; }
+    if (!q && !grupo) { $('resultados').innerHTML = '<div class="vacio">' + T('Escriba un nombre o un ID, o elija {un} {grupo}.') + '</div>'; return; }
     $('resultados').innerHTML = '<div class="cargando">Buscando…</div>'; $('conteo').textContent = '';
     try {
       const j = await api({ accion: 'buscar', q, grupo });
       const r = j.resultados || [];
       if (!r.length) {
         if (/^\d+$/.test(q)) { $('resultados').innerHTML = '<div class="vacio">No está en el índice. <a href="#" onclick="abrir(' + Number(q) + ');return false">Abrir el ProductId ' + q + ' directamente</a></div>'; return; }
-        $('resultados').innerHTML = '<div class="vacio">No se encontraron proyectos.</div>'; return;
+        $('resultados').innerHTML = '<div class="vacio">' + T('No se encontraron {items}.') + '</div>'; return;
       }
       $('resultados').innerHTML = r.map(p => '<div class="res' + (p.id === seleccionado ? ' sel' : '') + '" data-id="' + p.id + '" onclick="abrir(' + p.id + ')">' +
         '<div class="n" title="' + esc(p.nombre) + '">' + esc(p.nombre) + '</div>' +
         '<span class="estado ' + (p.activo ? 'si' : 'no') + '">' + (p.activo ? 'Activo' : 'Inactivo') + '</span>' +
         '<div class="m">' + p.id + ' · ' + esc(p.grupo || '—') + (p.categoria ? ' · ' + esc(p.categoria) : '') + '</div>' +
         '<div class="m">' + (p.skus != null ? p.skus_activos + '/' + p.skus + ' SKUs' : '') + '</div></div>').join('');
-      $('conteo').textContent = r.length >= (j.limite || 60) ? 'Se muestran los primeros ' + r.length + '. Afine la búsqueda.' : r.length + (r.length === 1 ? ' proyecto' : ' proyectos');
+      $('conteo').textContent = r.length >= (j.limite || 60) ? 'Se muestran los primeros ' + r.length + '. Afine la búsqueda.' : r.length + ' ' + (r.length === 1 ? MK.item : MK.items);
     } catch (e) { $('resultados').innerHTML = '<div class="error">' + esc(e.message) + '</div>'; }
   }
 
@@ -320,7 +420,7 @@
   async function abrir(id) {
     seleccionado = id;
     document.querySelectorAll('.res').forEach(x => x.classList.toggle('sel', Number(x.dataset.id) === id));
-    $('ficha').innerHTML = '<div class="cargando">Leyendo el proyecto ' + id + ' en VTEX…</div>';
+    $('ficha').innerHTML = '<div class="cargando">' + T('Leyendo el {item} ') + id + ' en VTEX…</div>';
     try { pintarFicha(await api({ accion: 'producto', product_id: id })); }
     catch (e) { $('ficha').innerHTML = '<div class="error">' + esc(e.message) + '</div>'; }
   }
@@ -333,7 +433,7 @@
     const hora = new Date(j.leido_en).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     $('ficha').innerHTML =
       '<div class="ficha-cab"><div><h2>' + esc(p.nombre) + '</h2>' +
-      '<div class="meta">ProductId ' + p.id + ' · ' + esc(p.marca || 'Marca ' + p.brand_id) + ' · <span class="estado ' + (p.activo ? 'si' : 'no') + '">' + (p.activo ? 'Activo' : 'Inactivo') + '</span>' +
+      '<div class="meta">ProductId ' + p.id + ' · ' + esc((MK.clave === 'movilidad' ? p.grupo : p.marca) || p.marca || 'Marca ' + p.brand_id) + ' · <span class="estado ' + (p.activo ? 'si' : 'no') + '">' + (p.activo ? 'Activo' : 'Inactivo') + '</span>' +
       ' · leído de VTEX a las ' + hora + '</div></div>' +
       '<div class="enlaces"><button class="btn-sec" id="btnEditar" onclick="editar()">Editar</button><button class="btn-sec" onclick="abrir(' + p.id + ')">Volver a leer</button>' +
       '<a class="btn-sec" target="_blank" rel="noopener" href="' + esc(j.enlace_admin) + '">Abrir en VTEX ↗</a></div></div>' +
@@ -351,7 +451,7 @@
       '<div class="k">Descripción</div><div class="v largo">' + valor(p.descripcion) + '</div></div></div>' +
 
       '<div class="panel" id="p-specs"><div class="filtro-specs"><label><input type="checkbox" onchange="soloVacias(this.checked)"> Solo vacías</label>' +
-      '<span>Incluye los campos de la categoría que el proyecto todavía no tiene llenos.</span></div>' +
+      '<span>' + T('Incluye los campos de la categoría que el {item} todavía no tiene llenos.') + '</span></div>' +
       '<table class="specs"><thead><tr><th>Especificación</th><th>Valor</th></tr></thead><tbody>' +
       specs.map(s => '<tr class="' + (s.valores.length ? '' : 'vacia') + '"><td>' + esc(s.nombre) +
         (s.obligatorio ? '<span class="chip oblig">obligatoria</span>' : '') + (s.grupo ? '<span class="chip grupo">' + esc(s.grupo) + '</span>' : '') + '</td><td>' +
@@ -367,12 +467,12 @@
           '</b></div><div class="precio">Costo<b>' + plata(s.precio && s.precio.costo) + '</b></div></div>' +
           (s.specs.length ? '<div class="fila">' + s.specs.map(x => '<span>' + esc(x.nombre) + ': <b>' + esc(x.valores.join(', ')) + '</b></span>').join('') + '</div>' : '') +
           (s.imagenes.length > 1 ? '<div class="miniaturas">' + s.imagenes.slice(1, 13).map(im => '<img src="' + esc(im.url) + '" alt="" loading="lazy">').join('') + '</div>' : '') +
-          '</div></div>').join('') : '<div class="vacio">Este proyecto no tiene SKUs.</div>') + '</div></div>' +
+          '</div></div>').join('') : '<div class="vacio">' + T('Este {item} no tiene SKUs.') + '</div>') + '</div></div>' +
 
       '<div class="panel" id="p-hist">' + (hist.length ? '<table class="hist"><thead><tr><th>Fecha</th><th>Entidad</th><th>Campo</th><th>Antes → Ahora</th><th>Origen</th><th>Usuario</th></tr></thead><tbody>' +
         hist.map(h => '<tr><td>' + esc(fechaLocal(h.fecha)) + '</td><td>' + esc(h.entidad) + (h.sku_id ? ' ' + h.sku_id : '') + '</td><td>' + esc(h.campo) + '</td><td><div class="antes">' +
           esc(h.antes) + '</div><div>' + esc(h.ahora) + '</div></td><td><span class="origen ' + esc(String(h.origen).split(' ')[0]) + '">' + esc(h.origen) + '</span></td><td>' + esc(h.usuario) + '</td></tr>').join('') +
-        '</tbody></table>' : '<div class="vacio">Sin cambios registrados para este proyecto.</div>') + '</div>';
+        '</tbody></table>' : '<div class="vacio">' + T('Sin cambios registrados para este {item}.') + '</div>') + '</div>';
   }
   /* ---------- Edición ---------- */
   function editar() {

@@ -26,20 +26,20 @@ async function idsParaDescargar() {
   const lista = $('mIds').value.split(/[^0-9]+/).map(Number).filter(n => Number.isInteger(n) && n > 0);
   if (lista.length) return { ids: [...new Set(lista)].slice(0, 300), nombre: 'ids' };
   const grupo = $('mGrupo').value.trim();
-  if (!grupo) throw new Error('Elija una constructora o escriba ProductIds.');
+  if (!grupo) throw new Error(T('Elija {un} {grupo} o escriba ProductIds.'));
   const j = await api({ accion: 'buscar', grupo, todos: true });
   const ids = (j.resultados || []).map(r => r.id).filter(id => id !== 1);
-  if (!ids.length) throw new Error('No se encontraron proyectos de esa constructora.');
+  if (!ids.length) throw new Error(T('No se encontraron {items} de ese {grupo}.'));
   return { ids, nombre: grupo };
 }
 async function descargarExcel() {
   const btn = $('mBtnDescargar'), est = $('mEstadoDescarga');
-  btn.disabled = true; est.innerHTML = '<div class="cargando">Buscando proyectos…</div>';
+  btn.disabled = true; est.innerHTML = '<div class="cargando">' + T('Buscando {items}…') + '</div>';
   try {
     const { ids, nombre } = await idsParaDescargar();
     const fichas = [], fallos = []; let hechos = 0;
     const pintar = () => { est.innerHTML = '<div class="progreso"><div style="width:' + Math.round(hechos / ids.length * 100) + '%"></div></div>' +
-      '<div class="m">Leyendo de VTEX: ' + hechos + ' de ' + ids.length + ' proyectos…</div>'; };
+      '<div class="m">Leyendo de VTEX: ' + hechos + ' de ' + ids.length + ' ' + MK.items + '…</div>'; };
     pintar();
     let i = 0;
     const trabajador = async () => { while (i < ids.length) { const id = ids[i++];
@@ -47,12 +47,12 @@ async function descargarExcel() {
       catch (e) { fallos.push(id + ' (' + e.message + ')'); }
       hechos++; pintar(); } };
     await Promise.all([trabajador(), trabajador(), trabajador()]);       // 3 a la vez para no saturar n8n
-    if (!fichas.length) throw new Error('No se pudo leer ningún proyecto. ' + fallos.slice(0, 3).join('; '));
+    if (!fichas.length) throw new Error(T('No se pudo leer ningún {item}. ') + fallos.slice(0, 3).join('; '));
     fichas.sort((a, b) => ids.indexOf(a.producto.id) - ids.indexOf(b.producto.id));
     const blob = await armarExcel(fichas);
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'carga_' + slug(nombre) + '_' + hoyM() + '.xlsx';
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'carga_' + MK.clave + '_' + slug(nombre) + '_' + hoyM() + '.xlsx';
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    est.innerHTML = '<div class="ok-msg">Listo: ' + fichas.length + ' proyectos y ' + fichas.reduce((n, f) => n + (f.skus || []).filter(s => !s.error).length, 0) + ' SKUs.</div>' +
+    est.innerHTML = '<div class="ok-msg">Listo: ' + fichas.length + ' ' + MK.items + ' y ' + fichas.reduce((n, f) => n + (f.skus || []).filter(s => !s.error).length, 0) + ' SKUs.</div>' +
       (fallos.length ? '<div class="error">No se pudieron leer: ' + esc(fallos.join(', ')) + '</div>' : '');
   } catch (e) { est.innerHTML = '<div class="error">' + esc(e.message) + '</div>'; }
   btn.disabled = false;
@@ -65,13 +65,14 @@ async function armarExcel(fichas) {
     for (const s of f.especificaciones || []) if (!specP.has(s.nombre)) specP.set(s.nombre, { tipo_id: s.tipo_id ?? null, opciones: s.opciones || null });
     for (const s of f.sku_campos || []) if (!specS.has(s.nombre)) specS.set(s.nombre, { tipo_id: s.tipo_id ?? null, opciones: s.opciones || null });
   }
-  const colsP = ['ProductId', 'Proyecto', 'Constructora', ...P_FIJAS.map(x => x[0]), ...specP.keys()];
-  const colsS = ['SkuId', 'ProductId', 'Proyecto', ...S_FIJAS, ...specS.keys()];
-  const original = [['hoja', 'id', 'columna', 'valor']];
+  const colsP = ['ProductId', MK.Item, MK.Grupo, ...P_FIJAS.map(x => x[0]), ...specP.keys()];
+  const colsS = ['SkuId', 'ProductId', MK.Item, ...S_FIJAS, ...specS.keys()];
+  // La primera fila marca el marketplace: un Excel de Inmobiliario no se puede subir en Movilidad (ni al revés)
+  const original = [['hoja', 'id', 'columna', 'valor'], ['_mercado', 0, 'marketplace', MK.nombre]];
   const filasP = [colsP], filasS = [colsS];
   const celda = (tipo, vals) => MULTILINEA.includes(tipo) ? vals.join('\n') : vals.join(SEP);
   for (const f of fichas) {
-    const p = f.producto, fila = [p.id, p.nombre || '', p.marca || '']; original.push(['Productos', p.id, '__fila', '1']);
+    const p = f.producto, fila = [p.id, p.nombre || '', (MK.clave === 'movilidad' ? p.grupo : p.marca) || p.marca || '']; original.push(['Productos', p.id, '__fila', '1']);
     for (const [k, c] of P_FIJAS) { const v = txt(p[c]); fila.push(v); if (v) original.push(['Productos', p.id, k, v]); }
     for (const [nombre, t] of specP) {
       const s = (f.especificaciones || []).find(x => x.nombre === nombre); const v = s ? celda(t.tipo_id, s.valores || []) : '';
@@ -113,14 +114,14 @@ async function armarExcel(fichas) {
   const maxOp = Math.max(1, ...opciones.map(o => o.length));
   const hojaOp = [opciones.map(o => o[0])]; for (let r = 1; r < maxOp; r++) hojaOp.push(opciones.map(o => o[r] ?? ''));
   const instrucciones = [['Cómo usar este archivo'],
-    ['1. Edite solo las columnas blancas. Las grises (ProductId, SkuId, Proyecto, Constructora) son de referencia: el nombre se cambia en la columna Nombre.'],
+    ['1. Edite solo las columnas blancas. Las grises (ProductId, SkuId, ' + MK.Item + ', ' + MK.Grupo + ') son de referencia: el nombre se cambia en la columna Nombre.'],
     ['2. No cambie el orden ni el nombre de las columnas, y no borre las hojas ocultas.'],
     ['3. Campos de lista: elija de la flecha desplegable. Varias opciones en una celda: sepárelas con punto y coma (;).'],
     ['4. Activo: Sí o No. Precios: solo números, sin puntos de miles (ej. 964064622).'],
     ['5. Celdas vacías que tenían valor no se borran en VTEX (vaciar no está soportado).'],
     ['6. Suba el archivo en la app (Carga masiva → Subir). Verá cada cambio antes de aplicarlo.'],
     ['7. Si alguien cambió algo en VTEX después de esta descarga, ese campo sale como CONFLICTO y no se sobrescribe.'],
-    [''], ['Descargado el ' + new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' }) + ' (valores leídos de VTEX en ese momento).']];
+    [''], ['Marketplace: ' + MK.nombre + '. Súbalo en la app con ' + MK.nombre + ' seleccionado.'], ['Descargado el ' + new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' }) + ' (valores leídos de VTEX en ese momento).']];
   const anchos = cols => cols.map((n, i) => i === 0 ? 11 : (n === 'Descripción' ? 60 : Math.min(40, Math.max(12, n.length + 4))));
   return Excel.crear([
     { nombre: 'Productos', filas: filasP, anchos: anchos(colsP), soloLectura: [0, 1, 2], validaciones: valP },
@@ -149,6 +150,8 @@ async function leerArchivo(input) {
 
 function detectar(libro) {
   const orig = {}; for (const [h, id, c, v] of libro._original.slice(1)) if (h) orig[h + '|' + id + '|' + c] = txt(v);
+  const mercado = orig['_mercado|0|marketplace'] || 'Inmobiliario';          // los Excel anteriores a Movilidad son de Inmobiliario
+  if (mercado !== MK.nombre) throw new Error('Este Excel es de ' + mercado + ' y la app está en ' + MK.nombre + '. Cambie el marketplace arriba y vuelva a subirlo.');
   const campos = {}; for (const [h, i, n, t, o] of libro._campos.slice(1)) if (h) {
     let op = null; try { op = o ? JSON.parse(o) : null; } catch (e) { op = null; }
     (campos[h] ||= {})[Number(i)] = { nombre: n, tipo_id: t === '' || t == null ? null : Number(t), opciones: op };
@@ -210,11 +213,11 @@ function pintarRevision() {
   const corto = s => { s = String(s ?? ''); return s ? esc(s.length > 90 ? s.slice(0, 90) + '…' : s) : '<span class="sin">vacío</span>'; };
   const clase = r => r === 'OK' ? 'res-ok' : r === 'CONFLICTO' ? 'res-conflicto' : r ? 'res-error' : '';
   $('mRevision').innerHTML =
-    '<div class="resumen-m"><b>' + c.length + '</b> cambios en <b>' + proyectos + '</b> proyectos · <span class="res-ok">' + ok + ' listos</span>' +
+    '<div class="resumen-m"><b>' + c.length + '</b> cambios en <b>' + proyectos + '</b> ' + MK.items + ' · <span class="res-ok">' + ok + ' listos</span>' +
     (mal ? ' · <span class="res-error">' + mal + ' con error de validación (no se aplicarán)</span>' : '') +
     (M.avisos && M.avisos.length ? ' · filas nuevas ignoradas: ' + esc(M.avisos.slice(0, 8).join(', ')) : '') + '</div>' +
     '<div class="tabla-m"><table class="hist"><thead><tr><th><input type="checkbox" checked onchange="marcarTodos(this.checked)"' + (M.aplicando ? ' disabled' : '') + '></th>' +
-    '<th>Proyecto</th><th>SKU</th><th>Campo</th><th>Antes</th><th>Nuevo</th><th>Estado</th></tr></thead><tbody>' +
+    '<th>' + MK.Item + '</th><th>SKU</th><th>Campo</th><th>Antes</th><th>Nuevo</th><th>Estado</th></tr></thead><tbody>' +
     c.map((x, i) => '<tr><td><input type="checkbox" ' + (x.aplicar ? 'checked' : '') + (x.error || M.aplicando || x.resultado ? ' disabled' : '') +
       ' onchange="M.cambios[' + i + '].aplicar=this.checked;contarM()"></td><td>' + x.product_id + '<div class="m">' + esc(x.proyecto) + '</div></td><td>' + (x.sku_id || '') + '</td><td>' +
       esc(x.columna) + '</td><td>' + corto(x.antes) + '</td><td>' + corto(x.nuevo) + (x.alerta ? '<span class="alerta">⚠ ' + esc(x.alerta) + '</span>' : '') + '</td><td>' +
@@ -234,7 +237,7 @@ function confirmarAplicar() {
   const sel = M.cambios.filter(x => x.aplicar && !x.error && !x.resultado); if (!sel.length) return;
   const proy = new Set(sel.map(x => x.product_id)).size, alertas = sel.filter(x => x.alerta).length;
   const m = document.createElement('div'); m.className = 'modal-fondo'; m.id = 'modal';
-  m.innerHTML = '<div class="modal"><h3>Aplicar carga masiva</h3><div class="adv">Se aplicarán <b>' + sel.length + ' cambios en ' + proy + ' proyectos</b> directamente en <b>VTEX (producción)</b>.' +
+  m.innerHTML = '<div class="modal"><h3>Aplicar carga masiva</h3><div class="adv">Se aplicarán <b>' + sel.length + ' cambios en ' + proy + ' ' + MK.items + '</b> de <b>' + MK.nombre + '</b> directamente en <b>VTEX (producción)</b>.' +
     (alertas ? '<br><b>' + alertas + ' precios cambian más del 30 %.</b>' : '') + '<br>Antes de escribir se vuelve a leer VTEX: si algo cambió desde la descarga, ese campo sale como CONFLICTO y no se sobrescribe.</div>' +
     '<div class="acc"><button class="btn-sec" onclick="cerrarModal()">Volver</button><button class="btn-morado" onclick="cerrarModal();aplicarMasiva()">Sí, aplicar</button></div></div>';
   document.body.appendChild(m);
@@ -244,7 +247,7 @@ async function aplicarMasiva() {
   M.aplicando = true; pintarRevision();
   const porProducto = new Map(); for (const x of sel) { if (!porProducto.has(x.product_id)) porProducto.set(x.product_id, []); porProducto.get(x.product_id).push(x); }
   let hechos = 0; const total = porProducto.size;
-  const progreso = () => { $('mInfo').innerHTML = '<div class="progreso"><div style="width:' + Math.round(hechos / total * 100) + '%"></div></div>Proyecto ' + hechos + ' de ' + total; };
+  const progreso = () => { $('mInfo').innerHTML = '<div class="progreso"><div style="width:' + Math.round(hechos / total * 100) + '%"></div></div>' + MK.Item + ' ' + hechos + ' de ' + total; };
   progreso();
   for (const [pid, lista] of porProducto) {
     const prod = lista.filter(x => !x.sku_id), skus = lista.filter(x => x.sku_id);
@@ -267,7 +270,7 @@ async function aplicarMasiva() {
   $('mInfo').innerHTML = '<b>Terminado:</b> <span class="res-ok">' + ok + ' OK</span> · <span class="res-conflicto">' + conf + ' conflictos</span> · <span class="res-error">' + err + ' errores</span>';
 }
 async function descargarResultado() {
-  const filas = [['ProductId', 'Proyecto', 'SkuId', 'Campo', 'Antes', 'Nuevo', 'Estado', 'Detalle']];
+  const filas = [['ProductId', MK.Item, 'SkuId', 'Campo', 'Antes', 'Nuevo', 'Estado', 'Detalle']];
   for (const x of M.cambios) filas.push([x.product_id, x.proyecto, x.sku_id || '', x.columna, x.antes, x.nuevo,
     x.error ? 'No válido' : (x.resultado || (x.aplicar ? 'Pendiente' : 'No seleccionado')), x.error || x.detalle]);
   const blob = await Excel.crear([{ nombre: 'Resultado', filas, anchos: [11, 34, 10, 26, 30, 30, 14, 60] }]);
